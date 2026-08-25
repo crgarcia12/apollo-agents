@@ -66,14 +66,29 @@ replaying canned alarm flags.
 
 ## 3. Real AGC source code
 
-`reference/ALARM_AND_ABORT.agc` is the **actual, unmodified (public domain)
-Luminary099 source file** from the flown Apollo 11 Lunar Module AGC,
-sourced from the Virtual AGC project's transcription, published at
-[chrislgarry/Apollo-11](https://github.com/chrislgarry/Apollo-11). It
-contains the real `ALARM`, `BAILOUT`, `POODOO`, and `PRIOLARM` routines that
-implement exactly the alarm-and-recover behavior this demo simulates. See
-`reference/SOURCE_NOTES.md` for a guided walkthrough and pointers to the
-related `EXECUTIVE.agc`/`WAITLIST.agc`/`RESTARTS.agc` modules.
+Two **actual, unmodified (public domain) Luminary099 source files** from
+the flown Apollo 11 Lunar Module AGC are vendored in `reference/`, sourced
+from the Virtual AGC project's transcription, published at
+[chrislgarry/Apollo-11](https://github.com/chrislgarry/Apollo-11):
+
+- `ALARM_AND_ABORT.agc` — contains the real `ALARM`, `BAILOUT`, `POODOO`,
+  and `PRIOLARM` routines that implement exactly the alarm-and-recover
+  behavior this demo simulates. See `reference/SOURCE_NOTES.md` for a
+  guided walkthrough and pointers to the related
+  `EXECUTIVE.agc`/`WAITLIST.agc`/`RESTARTS.agc` modules.
+- `INPUT_OUTPUT_CHANNEL_BIT_DESCRIPTIONS.agc` — the AGC's actual I/O
+  channel/bit documentation (pages 54–60 of the flown listing). This is the
+  primary source for the **[I/O signal diagram](docs/io-signal-diagram.md)**
+  described below.
+
+## 3b. AGC input/output signal diagram
+
+See **[`docs/io-signal-diagram.md`](docs/io-signal-diagram.md)** for a full
+Mermaid diagram plus a channel-by-channel reference table of every input
+channel (keyboard, hand controllers, radar/IMU status, real-time clock) and
+output channel (RCS jets, DSKY display/lamps, engine on/off, CDU drive,
+downlink telemetry) that the real AGC used — all sourced directly from
+`INPUT_OUTPUT_CHANNEL_BIT_DESCRIPTIONS.agc`, not invented for this demo.
 
 ## 4. Project layout
 
@@ -93,8 +108,11 @@ apollo11-agc-demo/
 │   ├── kql/anomaly_detection_queries.kql # Detection + root-cause correlation queries
 │   ├── operations_agent_playbook.md      # How to configure Fabric's Operations Agent for this incident
 │   └── incident_investigation_transcript.md  # Sample Copilot "Investigator insights" root-cause report
+├── docs/
+│   └── io-signal-diagram.md        # Mermaid I/O diagram + channel reference table (from real source)
 └── reference/
-    ├── ALARM_AND_ABORT.agc            # Real Luminary099 AGC source (public domain)
+    ├── ALARM_AND_ABORT.agc                        # Real Luminary099 AGC source (public domain)
+    ├── INPUT_OUTPUT_CHANNEL_BIT_DESCRIPTIONS.agc   # Real Luminary099 I/O channel docs (public domain)
     └── SOURCE_NOTES.md
 ```
 
@@ -107,8 +125,13 @@ python agc_simulator.py --fast 20     # 20x real-time speed (~40s to replay the 
 ```
 
 Then open `dsky-ui/index.html` in a browser (just double-click it, or serve
-it with any static file server). It connects to `ws://localhost:8765` and
-shows, live:
+it with any static file server). The panel layout matches the real Block II
+DSKY: a **COMP ACTY** lamp + **PROG** numeric top bar, the 2-column x 6-row
+status/caution light matrix (UPLINK ACTY/TEMP, NO ATT/GIMBAL LOCK,
+STBY/PROG, KEY REL/RESTART, OPR ERR/TRACKER, ALT/VEL), **VERB**/**NOUN**
+numerics, three blank **R1/R2/R3** register rows, and the real keyboard
+grid (`7 8 9 VERB / 4 5 6 NOUN / 1 2 3 CLR / 0 + - PRO / KEY REL ENTR RSET`).
+It connects to `ws://localhost:8765` and shows, live:
 
 - `PROG` / `VERB` / `NOUN` and the three `R1`/`R2`/`R3` registers.
 - The `PROG` (alarm) and `RESTART` lamps lighting up in sync with the real

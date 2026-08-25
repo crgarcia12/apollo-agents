@@ -13,53 +13,89 @@ h1 .sub { font-size: 13px; color: #7a8; font-weight: normal; }
 .wrap { max-width: 1100px; margin: 0 auto; }
 .panels { display: flex; gap: 24px; flex-wrap: wrap; }
 
+/* ============ DSKY panel ============
+   Modeled on the real Block II DSKY faceplate layout:
+   1) top bar: COMP ACTY lamp + PROG numeric (2 digits)
+   2) 2-column x 6-row status/caution light matrix
+   3) VERB / NOUN numerics (2 digits each)
+   4) three blank register rows R1/R2/R3 (sign + 5 digits, unlabeled on
+      the real hardware -- there is no printed "R1" on the actual unit)
+   5) keyboard: 7 8 9 VERB / 4 5 6 NOUN / 1 2 3 CLR / 0 + - PRO / KEY REL ENTR RSET
+*/
 .dsky {
-  background: #17130e;
-  border: 3px solid #3a2f22;
-  border-radius: 8px;
-  padding: 16px;
-  display: grid;
-  grid-template-columns: 90px 200px;
-  grid-template-rows: auto auto;
-  gap: 12px;
-  width: 320px;
+  background: #2b2b2e;
+  border: 3px solid #111;
+  border-radius: 6px;
+  padding: 14px;
+  width: 300px;
+  box-shadow: inset 0 0 0 2px #444, 0 6px 18px rgba(0,0,0,.5);
 }
-.lamps-col {
-  grid-column: 1;
-  grid-row: 1 / span 2;
+
+.dsky-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #000;
+  border: 2px solid #444;
+  border-radius: 3px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.comp-acty {
+  font-size: 9px;
+  color: #3a3a3a;
+  text-align: center;
+  line-height: 1.1;
+  font-weight: bold;
+}
+.comp-acty.on { color: #fff8dc; text-shadow: 0 0 8px #fff2a8; }
+.prog-block { display: flex; align-items: baseline; gap: 8px; }
+
+.dsky-lights {
   display: grid;
-  grid-template-rows: repeat(10, 1fr);
-  gap: 4px;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 30px;
+  gap: 3px;
+  margin-bottom: 8px;
 }
 .lamp {
-  background: #241d15;
-  color: #4a4238;
+  background: #050505;
+  color: #3a3a3a;
   font-size: 9px;
+  font-weight: bold;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #3a2f22;
-  border-radius: 3px;
-  line-height: 1.1;
+  border: 1px solid #444;
+  border-radius: 2px;
+  line-height: 1.05;
   padding: 2px;
 }
-.lamp.on { background: #ffb300; color: #2b1c00; box-shadow: 0 0 8px #ffb300; }
-.lamp.warn.on { background: #ff3b30; color: #2b0000; box-shadow: 0 0 10px #ff3b30; }
+.lamp.on { background: #fff2a8; color: #1a1400; box-shadow: 0 0 10px #fff2a8; }
 
-.display-col {
-  grid-column: 2;
-  background: #05140a;
-  border: 2px solid #0c3d1e;
-  border-radius: 4px;
-  padding: 10px;
+.dsky-vn {
+  display: flex;
+  justify-content: space-between;
+  background: #000;
+  border: 2px solid #444;
+  border-radius: 3px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
 }
-.row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.comp-acty-row { justify-content: space-between; }
-.comp-acty { font-size: 9px; color: #163; }
-.comp-acty.on { color: #3f6; text-shadow: 0 0 6px #3f6; }
-.prog-block, .vn-block { display: flex; align-items: baseline; gap: 6px; }
-.label { font-size: 10px; color: #2a6; }
+.vn-block { display: flex; align-items: baseline; gap: 6px; }
+.label { font-size: 10px; color: #9a9a9a; letter-spacing: 1px; }
+
+.dsky-registers {
+  background: #000;
+  border: 2px solid #444;
+  border-radius: 3px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+.reg-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+.reg-row:last-child { margin-bottom: 0; }
+
 .digits {
   font-size: 22px;
   color: #3dff5a;
@@ -68,26 +104,26 @@ h1 .sub { font-size: 13px; color: #7a8; font-weight: normal; }
 }
 .digits.small { font-size: 18px; }
 .digits.reg { font-size: 22px; }
-.verb-noun-row { justify-content: space-between; }
-.reg-row { justify-content: flex-end; }
-.reg-label { font-size: 10px; color: #2a6; margin-right: auto; }
 
 .keypad {
-  grid-column: 2;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
 }
 .keypad button {
-  background: #2b2318;
-  color: #ddd;
-  border: 1px solid #4a3f2e;
-  border-radius: 4px;
-  padding: 8px 0;
+  background: #3a3a3d;
+  color: #eee;
+  border: 1px solid #555;
+  border-top-color: #666;
+  border-radius: 3px;
+  padding: 10px 0;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: bold;
 }
-.keypad button.blank { visibility: hidden; }
+.keypad button.fn { background: #333; color: #cfcfcf; font-size: 10px; }
+.keypad button.wide { grid-column: span 1; }
+.keypad button:active { background: #222; }
 
 .side { flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 16px; }
 .card {
