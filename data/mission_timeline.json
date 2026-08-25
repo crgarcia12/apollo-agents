@@ -1,0 +1,22 @@
+{
+  "mission": "Apollo 11",
+  "phase": "Powered Descent (PDI to Touchdown)",
+  "reference": "Ground Elapsed Time (GET) as HH:MM:SS from liftoff, 1969-07-16 13:32:00 UTC",
+  "source_notes": "Timestamps and alarm codes reconstructed from NASA transcripts, the Apollo 11 Lunar Surface Journal (ALSJ), and Don Eyles' account of the 1202/1201 program alarms.",
+  "events": [
+    { "get": "102:33:05", "type": "program", "program": "P63", "verb": 16, "noun": 68, "note": "PDI - Powered Descent Initiation, throttle down to auto guidance" },
+    { "get": "102:33:56", "type": "note", "note": "Rendezvous radar switch left in AUTO/SLEW per abort contingency procedure; CDU feeds AGC with spurious counts" },
+    { "get": "102:38:23", "type": "alarm", "code": "1202", "program": "P63", "verb": 5, "noun": 9, "note": "First 1202 EXECUTIVE OVERFLOW - NO VAC AREAS alarm. Executive ran out of core sets for job queue." },
+    { "get": "102:38:26", "type": "restart", "note": "Software restart: AGC clears non-essential (phantom) jobs and tasks, restarts core landing jobs (P63) from checkpoint via BAILOUT/priority restart logic" },
+    { "get": "102:38:30", "type": "voice", "speaker": "CAPCOM", "note": "Roger... We're GO on that alarm (relayed after Steve Bales / Jack Garman confirmed 1202 is on the 'GO' list)" },
+    { "get": "102:39:56", "type": "program", "program": "P64", "verb": 16, "noun": 68, "note": "Approach phase begins, LPD (Landing Point Designator) active" },
+    { "get": "102:42:18", "type": "alarm", "code": "1202", "program": "P64", "verb": 5, "noun": 9, "note": "Second 1202 alarm - same executive overflow cause, radar still in AUTO" },
+    { "get": "102:42:22", "type": "restart", "note": "Second automatic recovery; guidance and navigation state preserved" },
+    { "get": "102:42:43", "type": "alarm", "code": "1201", "program": "P64", "verb": 5, "noun": 9, "note": "1201 alarm - NO CORE SETS (executive out of core sets, same root cause family as 1202)" },
+    { "get": "102:42:45", "type": "restart", "note": "Third automatic recovery" },
+    { "get": "102:43:20", "type": "voice", "speaker": "Aldrin", "note": "1202 alarm reported again; Bales/Garman confirm GO" },
+    { "get": "102:44:58", "type": "program", "program": "P66", "verb": 6, "noun": 62, "note": "Manual takeover (ATT HOLD/RATE OF DESCENT) as Armstrong redesignates landing site past West Crater" },
+    { "get": "102:45:40", "type": "telemetry", "note": "Low-level fuel quantity light; ~90 seconds of fuel margin as Armstrong searches for clear landing spot" },
+    { "get": "102:45:57", "type": "event", "note": "Touchdown - Sea of Tranquility. 'The Eagle has landed.'" }
+  ]
+}

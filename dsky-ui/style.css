@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+* { box-sizing: border-box; }
+body {
+  background: #0c0d10;
+  color: #e8e8e8;
+  font-family: 'Share Tech Mono', monospace;
+  margin: 0;
+  padding: 20px;
+}
+h1 { font-size: 20px; letter-spacing: 2px; color: #7fd0ff; }
+h1 .sub { font-size: 13px; color: #7a8; font-weight: normal; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+.panels { display: flex; gap: 24px; flex-wrap: wrap; }
+
+.dsky {
+  background: #17130e;
+  border: 3px solid #3a2f22;
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 90px 200px;
+  grid-template-rows: auto auto;
+  gap: 12px;
+  width: 320px;
+}
+.lamps-col {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-rows: repeat(10, 1fr);
+  gap: 4px;
+}
+.lamp {
+  background: #241d15;
+  color: #4a4238;
+  font-size: 9px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #3a2f22;
+  border-radius: 3px;
+  line-height: 1.1;
+  padding: 2px;
+}
+.lamp.on { background: #ffb300; color: #2b1c00; box-shadow: 0 0 8px #ffb300; }
+.lamp.warn.on { background: #ff3b30; color: #2b0000; box-shadow: 0 0 10px #ff3b30; }
+
+.display-col {
+  grid-column: 2;
+  background: #05140a;
+  border: 2px solid #0c3d1e;
+  border-radius: 4px;
+  padding: 10px;
+}
+.row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.comp-acty-row { justify-content: space-between; }
+.comp-acty { font-size: 9px; color: #163; }
+.comp-acty.on { color: #3f6; text-shadow: 0 0 6px #3f6; }
+.prog-block, .vn-block { display: flex; align-items: baseline; gap: 6px; }
+.label { font-size: 10px; color: #2a6; }
+.digits {
+  font-size: 22px;
+  color: #3dff5a;
+  text-shadow: 0 0 6px #1f8a35;
+  letter-spacing: 2px;
+}
+.digits.small { font-size: 18px; }
+.digits.reg { font-size: 22px; }
+.verb-noun-row { justify-content: space-between; }
+.reg-row { justify-content: flex-end; }
+.reg-label { font-size: 10px; color: #2a6; margin-right: auto; }
+
+.keypad {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.keypad button {
+  background: #2b2318;
+  color: #ddd;
+  border: 1px solid #4a3f2e;
+  border-radius: 4px;
+  padding: 8px 0;
+  font-family: inherit;
+  font-size: 11px;
+}
+.keypad button.blank { visibility: hidden; }
+
+.side { flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 16px; }
+.card {
+  background: #14161a;
+  border: 1px solid #262a30;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.card h2 { font-size: 13px; margin: 0 0 8px; color: #7fd0ff; letter-spacing: 1px; }
+.card p { font-size: 12px; color: #9aa; line-height: 1.5; }
+.hint { font-size: 10px; color: #667; }
+
+.meter { background: #0c0d10; border: 1px solid #333; border-radius: 4px; height: 14px; overflow: hidden; }
+.meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#2ecc71,#f1c40f,#e74c3c); transition: width .2s; }
+.meter-label { font-size: 11px; margin-top: 4px; color: #9aa; }
+.flag-row { margin-top: 8px; font-size: 12px; }
+.flag b { color: #ff5c5c; }
+
+.clock { font-size: 30px; color: #ffb300; text-align: center; letter-spacing: 3px; }
+.clock-label { text-align: center; font-size: 11px; color: #9aa; }
+
+.log-card { flex: 1; }
+.log { height: 260px; overflow-y: auto; font-size: 11px; line-height: 1.6; }
+.log div { border-bottom: 1px dashed #232830; padding: 2px 0; }
+.log .alarm { color: #ff5c5c; }
+.log .restart { color: #ffb300; }
+.log .program { color: #7fd0ff; }
+.log .event { color: #3dff5a; }
+
+.footer { font-size: 11px; color: #667; margin-top: 20px; }
+.footer a { color: #7fd0ff; }

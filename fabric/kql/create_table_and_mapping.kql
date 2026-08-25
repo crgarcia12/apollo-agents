@@ -1,0 +1,33 @@
+// ============================================================================
+// KQL: create the Eventhouse table + ingestion mapping for AGC telemetry.
+// Run in a Fabric Eventhouse (KQL Database) query window.
+// ============================================================================
+
+.create table AgcTelemetry (
+    event_time: datetime,
+    mission_get: string,
+    event_type: string,
+    program: string,
+    code: string,
+    note: string,
+    core_sets_used: int,
+    max_core_sets: int,
+    radar_auto_slew: bool,
+    verb: int,
+    noun: int
+)
+
+.create table AgcTelemetry ingestion json mapping 'AgcTelemetryMapping'
+'['
+'    {"column":"event_time","path":"$.event_time"},'
+'    {"column":"mission_get","path":"$.mission_get"},'
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"program","path":"$.program"},'
+'    {"column":"code","path":"$.code"},'
+'    {"column":"note","path":"$.note"},'
+'    {"column":"core_sets_used","path":"$.core_sets_used"},'
+'    {"column":"max_core_sets","path":"$.max_core_sets"},'
+'    {"column":"radar_auto_slew","path":"$.radar_auto_slew"},'
+'    {"column":"verb","path":"$.verb"},'
+'    {"column":"noun","path":"$.noun"}'
+']'

@@ -1,0 +1,3 @@
+data/telemetry_stream.ndjson
+__pycache__/
+*.pyc

@@ -1,0 +1,26 @@
+{
+  "description": "Schema for the custom-app Eventstream source that ingests AGC telemetry produced by simulator/agc_simulator.py (data/telemetry_stream.ndjson) into a Microsoft Fabric Eventstream, landing in an Eventhouse KQL database table 'AgcTelemetry'.",
+  "eventstream_source": {
+    "type": "CustomEndpoint",
+    "name": "apollo11-agc-source",
+    "notes": "In Fabric, create an Eventstream, add a 'Custom App' source, and copy its connection string. Point a small forwarder at data/telemetry_stream.ndjson (e.g. `tail -f` piped to the Event Hub-compatible endpoint) or use the Fabric Python SDK / azure-eventhub package to publish each NDJSON line as an event."
+  },
+  "destination": {
+    "type": "Eventhouse",
+    "database": "Apollo11Ops",
+    "table": "AgcTelemetry"
+  },
+  "columns": [
+    { "name": "event_time", "type": "datetime", "source_field": "event_time" },
+    { "name": "mission_get", "type": "string", "source_field": "mission_get", "description": "Ground Elapsed Time HH:MM:SS" },
+    { "name": "event_type", "type": "string", "source_field": "event_type", "description": "program | alarm | restart | note | event | telemetry_sample" },
+    { "name": "program", "type": "string", "source_field": "program", "description": "Active AGC program, e.g. P63/P64/P66" },
+    { "name": "code", "type": "string", "source_field": "code", "description": "Alarm code such as 1202 or 1201, null otherwise" },
+    { "name": "note", "type": "string", "source_field": "note" },
+    { "name": "core_sets_used", "type": "int", "source_field": "core_sets_used", "description": "Executive job-table (core set) utilization, 0-8" },
+    { "name": "max_core_sets", "type": "int", "source_field": "max_core_sets" },
+    { "name": "radar_auto_slew", "type": "bool", "source_field": "radar_auto_slew", "description": "True when the rendezvous radar is in AUTO/SLEW, injecting spurious jobs" },
+    { "name": "verb", "type": "int", "source_field": "verb" },
+    { "name": "noun", "type": "int", "source_field": "noun" }
+  ]
+}

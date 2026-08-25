@@ -1,0 +1,49 @@
+// ============================================================================
+// KQL: anomaly-detection style queries for the Fabric Operations Agent /
+// Real-Time Intelligence to flag the executive-overflow condition that
+// caused the 1202/1201 alarms during Apollo 11's powered descent.
+// ============================================================================
+
+// 1) Raw alarm events during the descent.
+AgcTelemetry
+| where event_type == "alarm"
+| project event_time, mission_get, program, code, note
+| order by event_time asc
+
+// 2) Core-set (executive job table) utilization over time -- this is the
+//    leading indicator that predicts an alarm before it fires.
+AgcTelemetry
+| where event_type == "telemetry_sample"
+| project event_time, mission_get, core_sets_used, max_core_sets, radar_auto_slew
+| order by event_time asc
+| render timechart
+
+// 3) Threshold-based early warning: flag when the executive is within one
+//    job of overflowing (>= 7 of 8 core sets) WHILE the radar is in
+//    AUTO/SLEW -- this combination is the actual root cause pattern.
+AgcTelemetry
+| where event_type == "telemetry_sample"
+| where core_sets_used >= (max_core_sets - 1) and radar_auto_slew == true
+| project event_time, mission_get, core_sets_used, radar_auto_slew
+| summarize warning_count = count(), first_warning = min(event_time) by bin(event_time, 1s)
+
+// 4) Native Fabric anomaly detection (series_decompose_anomalies) applied to
+//    the core-set utilization series -- what "Anomaly Detection (Preview)"
+//    in Fabric Real-Time Intelligence would surface automatically.
+AgcTelemetry
+| where event_type == "telemetry_sample"
+| make-series used = avg(core_sets_used) on event_time step 1s
+| extend anomalies = series_decompose_anomalies(used, 1.5)
+| render anomalychart with (anomalycolumns = anomalies)
+
+// 5) Root-cause correlation: does radar_auto_slew consistently precede each
+//    alarm code within the prior 30 seconds? (confirms causality for the
+//    Operations Agent's investigation summary)
+let alarms = AgcTelemetry | where event_type == "alarm" | project alarm_time = event_time, code;
+let radar_windows = AgcTelemetry
+    | where event_type == "telemetry_sample" and radar_auto_slew == true
+    | project radar_time = event_time;
+alarms
+| join kind=inner (radar_windows) on $left.alarm_time == $right.radar_time
+    // (in production, use a fuzzy time-window join, e.g. `where radar_time between (alarm_time - 30s .. alarm_time)`)
+| summarize radar_auto_hits = count() by code

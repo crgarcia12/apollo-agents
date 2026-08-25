@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Apollo 11 DSKY — Powered Descent Simulator</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>APOLLO 11 &mdash; DSKY <span class="sub">(Display &amp; Keyboard) Live Simulator</span></h1>
+    <div class="panels">
+
+      <div class="dsky">
+        <div class="lamps-col">
+          <div class="lamp" id="lamp-uplink">UPLINK<br/>ACTY</div>
+          <div class="lamp" id="lamp-temp">TEMP</div>
+          <div class="lamp warn" id="lamp-restart">RESTART</div>
+          <div class="lamp" id="lamp-tracker">TRACKER</div>
+          <div class="lamp" id="lamp-noatt">NO ATT</div>
+          <div class="lamp" id="lamp-gimbal">GIMBAL<br/>LOCK</div>
+          <div class="lamp" id="lamp-stby">STBY</div>
+          <div class="lamp warn" id="lamp-prog">PROG</div>
+          <div class="lamp" id="lamp-keyrel">KEY REL</div>
+          <div class="lamp warn" id="lamp-opr">OPR ERR</div>
+        </div>
+
+        <div class="display-col">
+          <div class="row comp-acty-row">
+            <span id="comp-acty" class="comp-acty">COMP<br/>ACTY</span>
+            <div class="prog-block">
+              <span class="label">PROG</span>
+              <span id="prog-val" class="digits">63</span>
+            </div>
+          </div>
+          <div class="row verb-noun-row">
+            <div class="vn-block">
+              <span class="label">VERB</span>
+              <span id="verb-val" class="digits small">16</span>
+            </div>
+            <div class="vn-block">
+              <span class="label">NOUN</span>
+              <span id="noun-val" class="digits small">68</span>
+            </div>
+          </div>
+          <div class="row reg-row"><span class="reg-label">R1</span><span id="r1-val" class="digits reg">00102</span></div>
+          <div class="row reg-row"><span class="reg-label">R2</span><span id="r2-val" class="digits reg">00063</span></div>
+          <div class="row reg-row"><span class="reg-label">R3</span><span id="r3-val" class="digits reg">+00090</span></div>
+        </div>
+
+        <div class="keypad">
+          <button>VERB</button><button>NOUN</button><button class="blank"></button>
+          <button>7</button><button>8</button><button>9</button>
+          <button>4</button><button>5</button><button>6</button>
+          <button>1</button><button>2</button><button>3</button>
+          <button>+</button><button>0</button><button>&minus;</button>
+          <button>CLR</button><button>PRO</button><button>KEY REL</button>
+          <button>RSET</button><button>ENTR</button><button class="blank"></button>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="card">
+          <h2>Executive / Core-Set Monitor</h2>
+          <p>Models <code>EXECUTIVE.agc</code>'s fixed job table (8 core sets). When the rendezvous radar
+             is left in <b>AUTO/SLEW</b>, spurious interrupt-driven jobs flood the queue &rarr; overflow &rarr; 1202/1201.</p>
+          <div class="meter">
+            <div id="core-fill" class="meter-fill"></div>
+          </div>
+          <div class="meter-label"><span id="core-count">0</span> / 8 core sets used</div>
+          <div class="flag-row">
+            <span class="flag" id="flag-radar">RADAR AUTO/SLEW: <b id="flag-radar-val">OFF</b></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Mission Clock</h2>
+          <div class="clock" id="get-clock">000:00:00</div>
+          <div class="clock-label">Ground Elapsed Time (GET)</div>
+        </div>
+
+        <div class="card log-card">
+          <h2>Event / Telemetry Log <span class="hint">(streamed to Fabric Eventstream)</span></h2>
+          <div id="log" class="log"></div>
+        </div>
+      </div>
+    </div>
+    <p class="footer">
+      Connect status: <span id="conn-status">connecting&hellip;</span> &middot;
+      Data source: <code>simulator/agc_simulator.py</code> replaying <code>data/mission_timeline.json</code> &middot;
+      See <a href="../README.md">README</a> for the Microsoft Fabric Operational Agent incident debrief.
+    </p>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
