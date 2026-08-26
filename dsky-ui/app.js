@@ -49,7 +49,6 @@ function render(d) {
   setLamp("lamp-stby", d.stby, false);
   // Lamps not modeled by the simulator (no source signal driving them yet):
   // UPLINK ACTY, TEMP, NO ATT, GIMBAL LOCK, OPR ERR, TRACKER, ALT, VEL.
-  document.getElementById("comp-acty").classList.toggle("on", Math.floor(d.sim_get_seconds * 2) % 2 === 0);
 
   const pct = Math.min(100, Math.round((d.core_sets_used / d.max_core_sets) * 100));
   document.getElementById("core-fill").style.width = pct + "%";

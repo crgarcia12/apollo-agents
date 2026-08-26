@@ -11,19 +11,19 @@
     <h1>APOLLO 11 &mdash; DSKY <span class="sub">(Display &amp; Keyboard) Live Simulator</span></h1>
     <div class="panels">
 
-      <!-- Faithful recreation of the real Block II DSKY faceplate, matched
-           against a reference photo/annotated diagram of a flown unit:
-           light silver-grey aluminum case; a single 2-column x 7-row
-           lamp block (2 of the 14 positions are blank plates on the real
-           hardware) to the left; a separate dark maroon numeric-display
-           block to the right (COMP ACTY + PROG top row, VERB/NOUN row,
-           three R1/R2/R3 register rows) in amber-orange 7-segment digits;
-           and the keypad exactly as photographed:
-             +  7  8  9  CLR
-             -  4  5  6  ENTR
-           VERB 1  2  3  PRO
-           NOUN 0  .  .  RSET
-             .  .  .  .  KEY REL -->
+      <!-- Faithful recreation of the physical DSKY replica the user supplied
+           as a reference photo (thedsky.com replica unit): light grey/putty
+           matte plastic case; a single 2-column x 7-row lamp block (2 of the
+           14 positions are blank plates) to the left, unlit lamps rendered
+           as white lenses with black text; a separate BLACK display panel
+           to the right with glowing GREEN 7-segment digits and green
+           "tag" badges for the PROG / VERB / NOUN labels, each numeric row
+           underlined with a thin green rule; and a dark-navy keypad with
+           white legends in the exact grid photographed:
+           VERB +  7  8  9  CLR
+           NOUN -  4  5  6  ENTR
+           .    0  1  2  3  KEY REL
+           .    .  .  .  .  RSET -->
       <div class="dsky">
         <div class="dsky-case">
 
@@ -47,7 +47,6 @@
 
             <div class="display-panel">
               <div class="disp-row disp-top">
-                <span id="comp-acty" class="comp-acty">COMP<br/>ACTY</span>
                 <span class="numeric-label prog-label">PROG</span>
                 <span id="prog-val" class="digits seven-seg prog-digits">63</span>
               </div>
@@ -57,19 +56,17 @@
                 <span class="numeric-label">NOUN</span>
                 <span id="noun-val" class="digits seven-seg vn-digits">68</span>
               </div>
-              <div class="disp-divider"></div>
-              <div class="disp-row reg-row"><span id="r1-val" class="digits seven-seg reg-digits">00102</span></div>
-              <div class="disp-row reg-row"><span id="r2-val" class="digits seven-seg reg-digits">00063</span></div>
+              <div class="disp-row reg-row"><span id="r1-val" class="digits seven-seg reg-digits">+00102</span></div>
+              <div class="disp-row reg-row"><span id="r2-val" class="digits seven-seg reg-digits">+00063</span></div>
               <div class="disp-row reg-row"><span id="r3-val" class="digits seven-seg reg-digits">+00090</span></div>
             </div>
           </div>
 
           <div class="keypad">
-            <button>+</button><button>7</button><button>8</button><button>9</button><button class="fn">CLR</button>
-            <button>&minus;</button><button>4</button><button>5</button><button>6</button><button class="fn">ENTR</button>
-            <button class="fn">VERB</button><button>1</button><button>2</button><button>3</button><button class="fn">PRO</button>
-            <button class="fn">NOUN</button><button>0</button><button class="blank"></button><button class="blank"></button><button class="fn">RSET</button>
-            <button class="blank"></button><button class="blank"></button><button class="blank"></button><button class="blank"></button><button class="fn">KEY<br/>REL</button>
+            <button class="fn">VERB</button><button>+</button><button>7</button><button>8</button><button>9</button><button class="fn">CLR</button>
+            <button class="fn">NOUN</button><button>&minus;</button><button>4</button><button>5</button><button>6</button><button class="fn">ENTR</button>
+            <button class="blank"></button><button>0</button><button>1</button><button>2</button><button>3</button><button class="fn">KEY<br/>REL</button>
+            <button class="blank"></button><button class="blank"></button><button class="blank"></button><button class="blank"></button><button class="blank"></button><button class="fn">RSET</button>
           </div>
         </div>
       </div>
