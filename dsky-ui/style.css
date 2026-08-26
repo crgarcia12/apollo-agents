@@ -10,120 +10,152 @@ body {
 }
 h1 { font-size: 20px; letter-spacing: 2px; color: #7fd0ff; }
 h1 .sub { font-size: 13px; color: #7a8; font-weight: normal; }
-.wrap { max-width: 1100px; margin: 0 auto; }
-.panels { display: flex; gap: 24px; flex-wrap: wrap; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+.panels { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
 
-/* ============ DSKY panel ============
-   Modeled on the real Block II DSKY faceplate layout:
-   1) top bar: COMP ACTY lamp + PROG numeric (2 digits)
-   2) 2-column x 6-row status/caution light matrix
-   3) VERB / NOUN numerics (2 digits each)
-   4) three blank register rows R1/R2/R3 (sign + 5 digits, unlabeled on
-      the real hardware -- there is no printed "R1" on the actual unit)
-   5) keyboard: 7 8 9 VERB / 4 5 6 NOUN / 1 2 3 CLR / 0 + - PRO / KEY REL ENTR RSET
-*/
+/* ============================================================
+   DSKY -- modeled on the real Block II flight hardware:
+   - Case: dark warm "gunmetal" grey aluminum, brushed look, rounded
+     corners with corner screws (matches NASM / ALSJ reference photos).
+   - Display window: recessed matte-black glass with individual
+     lozenge-shaped (rounded-rect) lenses for each of the 12 status/
+     caution lights, arranged in the documented 2-column x 6-row grid.
+   - Digits: genuine 7-segment glyphs (DSEG7 Classic) in the pale
+     blue-green ("electroluminescent") color real DSKYs are famous for,
+     not a generic monospace font.
+   - Keyboard: the real cross/grid arrangement,
+     7 8 9 VERB / 4 5 6 NOUN / 1 2 3 CLR / 0 + - PRO / KEY REL ENTR RSET,
+     dark charcoal keys with light engraved lettering.
+   ============================================================ */
 .dsky {
-  background: #2b2b2e;
-  border: 3px solid #111;
-  border-radius: 6px;
-  padding: 14px;
-  width: 300px;
-  box-shadow: inset 0 0 0 2px #444, 0 6px 18px rgba(0,0,0,.5);
+  width: 340px;
 }
+.dsky-bezel {
+  background: linear-gradient(160deg, #6b6d6f 0%, #4b4d4f 45%, #3a3c3e 100%);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.25),
+    inset 0 -2px 6px rgba(0,0,0,.5),
+    0 8px 24px rgba(0,0,0,.6);
+  position: relative;
+}
+.dsky-bezel::before, .dsky-bezel::after {
+  /* corner screws */
+  content: "";
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ddd, #555 70%, #222);
+  top: 8px; left: 8px;
+}
+.dsky-bezel::after { left: auto; right: 8px; }
 
-.dsky-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #000;
-  border: 2px solid #444;
-  border-radius: 3px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
-}
-.comp-acty {
-  font-size: 9px;
-  color: #3a3a3a;
-  text-align: center;
-  line-height: 1.1;
-  font-weight: bold;
-}
-.comp-acty.on { color: #fff8dc; text-shadow: 0 0 8px #fff2a8; }
-.prog-block { display: flex; align-items: baseline; gap: 8px; }
-
-.dsky-lights {
+.dsky-screen {
+  background: #050505;
+  border-radius: 4px;
+  padding: 10px 8px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-rows: 30px;
-  gap: 3px;
-  margin-bottom: 8px;
+  grid-template-columns: 62px 1fr 62px;
+  gap: 6px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.9), inset 0 0 0 2px #1a1a1a;
+  margin-bottom: 14px;
+}
+
+.indicator-col {
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  gap: 4px;
 }
 .lamp {
-  background: #050505;
-  color: #3a3a3a;
-  font-size: 9px;
-  font-weight: bold;
-  text-align: center;
+  background: #0e0e0e;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #444;
-  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px #2a2a2a, inset 0 1px 2px rgba(0,0,0,.8);
+  min-height: 30px;
+}
+.lamp span {
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: .3px;
+  text-align: center;
   line-height: 1.05;
-  padding: 2px;
+  color: #2b2b2b;
+  font-family: Arial, sans-serif;
 }
-.lamp.on { background: #fff2a8; color: #1a1400; box-shadow: 0 0 10px #fff2a8; }
+.lamp.on {
+  background: #3a2f00;
+  box-shadow: inset 0 0 0 1px #4a3d00, 0 0 10px 2px rgba(255,197,64,.55);
+}
+.lamp.on span { color: #ffc540; text-shadow: 0 0 6px rgba(255,197,64,.9); }
+/* PROG / RESTART / OPR ERR read as red/amber caution per convention used
+   in this demo to distinguish alarm-class lamps at a glance. */
+.lamp.on.caution { background: #3a0d0d; box-shadow: inset 0 0 0 1px #4a1414, 0 0 10px 2px rgba(255,70,70,.6); }
+.lamp.on.caution span { color: #ff5c5c; text-shadow: 0 0 6px rgba(255,92,92,.9); }
 
-.dsky-vn {
+.center-col {
+  background: #050505;
+  border-radius: 3px;
+  padding: 6px 4px;
   display: flex;
-  justify-content: space-between;
-  background: #000;
-  border: 2px solid #444;
-  border-radius: 3px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 4px;
 }
-.vn-block { display: flex; align-items: baseline; gap: 6px; }
-.label { font-size: 10px; color: #9a9a9a; letter-spacing: 1px; }
+.comp-acty-row { text-align: center; margin-bottom: 2px; }
+.comp-acty {
+  font-size: 8px;
+  font-weight: bold;
+  color: #2b2b2b;
+  font-family: Arial, sans-serif;
+  letter-spacing: .5px;
+}
+.comp-acty.on { color: #fff2a8; text-shadow: 0 0 8px #fff2a8; }
 
-.dsky-registers {
-  background: #000;
-  border: 2px solid #444;
-  border-radius: 3px;
-  padding: 8px 10px;
-  margin-bottom: 10px;
+.numeric-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
 }
-.reg-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
-.reg-row:last-child { margin-bottom: 0; }
+.numeric-label {
+  font-size: 8px;
+  color: #7a7a7a;
+  font-family: Arial, sans-serif;
+  letter-spacing: 1px;
+}
 
-.digits {
-  font-size: 22px;
-  color: #3dff5a;
-  text-shadow: 0 0 6px #1f8a35;
-  letter-spacing: 2px;
+.register-row { display: flex; justify-content: center; }
+
+.seven-seg {
+  font-family: 'DSEG7 Classic', 'Share Tech Mono', monospace;
+  color: #3dffc8;
+  text-shadow: 0 0 4px #17ffb0, 0 0 12px rgba(23,255,176,.5);
 }
-.digits.small { font-size: 18px; }
-.digits.reg { font-size: 22px; }
+.digits.small { font-size: 20px; }
+.digits.reg { font-size: 24px; }
+.numeric-row .digits { font-size: 24px; }
 
 .keypad {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  gap: 5px;
 }
 .keypad button {
-  background: #3a3a3d;
-  color: #eee;
-  border: 1px solid #555;
-  border-top-color: #666;
-  border-radius: 3px;
-  padding: 10px 0;
-  font-family: inherit;
-  font-size: 12px;
+  background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 100%);
+  color: #e6e6e6;
+  border: 1px solid #444;
+  border-top-color: #555;
+  border-radius: 4px;
+  padding: 11px 0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
   font-weight: bold;
+  box-shadow: 0 2px 0 rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
 }
-.keypad button.fn { background: #333; color: #cfcfcf; font-size: 10px; }
-.keypad button.wide { grid-column: span 1; }
-.keypad button:active { background: #222; }
+.keypad button.fn { background: linear-gradient(180deg, #262626 0%, #161616 100%); color: #bdbdbd; font-size: 10px; }
+.keypad button:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.5); }
 
 .side { flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 16px; }
 .card {

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <title>Apollo 11 DSKY — Powered Descent Simulator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dseg7-classic/index.css" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -10,58 +11,61 @@
     <h1>APOLLO 11 &mdash; DSKY <span class="sub">(Display &amp; Keyboard) Live Simulator</span></h1>
     <div class="panels">
 
-      <!-- Faithful recreation of the Block II DSKY panel layout:
-           top row (COMP ACTY lamp + PROG numeric), 2-column x 6-row
-           status/caution lights, VERB/NOUN numerics, three blank
-           R1/R2/R3 register rows, and the real 4x4+3 keyboard grid. -->
+      <!-- Faithful recreation of the real Block II DSKY faceplate:
+           dark "gunmetal" case, black display window with individual
+           lozenge-shaped indicator lenses in the documented 2x6 grid,
+           genuine 7-segment numeric font (DSEG7) for PROG/VERB/NOUN/R1-R3,
+           and the real cross-style keyboard: 7 8 9 VERB / 4 5 6 NOUN /
+           1 2 3 CLR / 0 + - PRO / KEY REL ENTR RSET. -->
       <div class="dsky">
+        <div class="dsky-bezel">
 
-        <div class="dsky-topbar">
-          <span id="comp-acty" class="comp-acty">COMP<br/>ACTY</span>
-          <div class="prog-block">
-            <span class="label">PROG</span>
-            <span id="prog-val" class="digits">63</span>
+          <div class="dsky-screen">
+            <div class="indicator-col">
+              <div class="lamp" id="lamp-uplink"><span>UPLINK<br/>ACTY</span></div>
+              <div class="lamp" id="lamp-noatt"><span>NO ATT</span></div>
+              <div class="lamp" id="lamp-stby"><span>STBY</span></div>
+              <div class="lamp" id="lamp-keyrel"><span>KEY REL</span></div>
+              <div class="lamp" id="lamp-oprerr"><span>OPR ERR</span></div>
+              <div class="lamp" id="lamp-alt"><span>ALT</span></div>
+            </div>
+
+            <div class="center-col">
+              <div class="comp-acty-row">
+                <span id="comp-acty" class="comp-acty">COMP<br/>ACTY</span>
+              </div>
+              <div class="numeric-row prog-row">
+                <span class="numeric-label">PROG</span>
+                <span id="prog-val" class="digits seven-seg">63</span>
+              </div>
+              <div class="numeric-row">
+                <span class="numeric-label">VERB</span>
+                <span id="verb-val" class="digits seven-seg small">16</span>
+                <span class="numeric-label">NOUN</span>
+                <span id="noun-val" class="digits seven-seg small">68</span>
+              </div>
+              <div class="register-row"><span id="r1-val" class="digits seven-seg reg">00102</span></div>
+              <div class="register-row"><span id="r2-val" class="digits seven-seg reg">00063</span></div>
+              <div class="register-row"><span id="r3-val" class="digits seven-seg reg">+00090</span></div>
+            </div>
+
+            <div class="indicator-col">
+              <div class="lamp" id="lamp-temp"><span>TEMP</span></div>
+              <div class="lamp" id="lamp-gimbal"><span>GIMBAL<br/>LOCK</span></div>
+              <div class="lamp" id="lamp-prog"><span>PROG</span></div>
+              <div class="lamp" id="lamp-restart"><span>RESTART</span></div>
+              <div class="lamp" id="lamp-tracker"><span>TRACKER</span></div>
+              <div class="lamp" id="lamp-vel"><span>VEL</span></div>
+            </div>
           </div>
-        </div>
 
-        <div class="dsky-lights">
-          <div class="lamp" id="lamp-uplink">UPLINK<br/>ACTY</div>
-          <div class="lamp" id="lamp-temp">TEMP</div>
-          <div class="lamp" id="lamp-noatt">NO ATT</div>
-          <div class="lamp" id="lamp-gimbal">GIMBAL<br/>LOCK</div>
-          <div class="lamp" id="lamp-stby">STBY</div>
-          <div class="lamp" id="lamp-prog">PROG</div>
-          <div class="lamp" id="lamp-keyrel">KEY REL</div>
-          <div class="lamp" id="lamp-restart">RESTART</div>
-          <div class="lamp" id="lamp-oprerr">OPR ERR</div>
-          <div class="lamp" id="lamp-tracker">TRACKER</div>
-          <div class="lamp" id="lamp-alt">ALT</div>
-          <div class="lamp" id="lamp-vel">VEL</div>
-        </div>
-
-        <div class="dsky-vn">
-          <div class="vn-block">
-            <span class="label">VERB</span>
-            <span id="verb-val" class="digits small">16</span>
+          <div class="keypad">
+            <button>7</button><button>8</button><button>9</button><button class="fn">VERB</button>
+            <button>4</button><button>5</button><button>6</button><button class="fn">NOUN</button>
+            <button>1</button><button>2</button><button>3</button><button class="fn">CLR</button>
+            <button>0</button><button>+</button><button>&minus;</button><button class="fn">PRO</button>
+            <button class="fn wide">KEY REL</button><button class="fn wide">ENTR</button><button class="fn wide">RSET</button>
           </div>
-          <div class="vn-block">
-            <span class="label">NOUN</span>
-            <span id="noun-val" class="digits small">68</span>
-          </div>
-        </div>
-
-        <div class="dsky-registers">
-          <div class="reg-row"><span id="r1-val" class="digits reg">00102</span></div>
-          <div class="reg-row"><span id="r2-val" class="digits reg">00063</span></div>
-          <div class="reg-row"><span id="r3-val" class="digits reg">+00090</span></div>
-        </div>
-
-        <div class="keypad">
-          <button>7</button><button>8</button><button>9</button><button class="fn">VERB</button>
-          <button>4</button><button>5</button><button>6</button><button class="fn">NOUN</button>
-          <button>1</button><button>2</button><button>3</button><button class="fn">CLR</button>
-          <button>0</button><button>+</button><button>&minus;</button><button class="fn">PRO</button>
-          <button class="fn wide">KEY REL</button><button class="fn wide">ENTR</button><button class="fn wide">RSET</button>
         </div>
       </div>
 

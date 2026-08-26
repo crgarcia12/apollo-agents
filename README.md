@@ -99,6 +99,7 @@ apollo11-agc-demo/
 │   └── telemetry_stream.ndjson    # Generated at runtime — NDJSON telemetry (Fabric ingestion feed)
 ├── simulator/
 │   ├── agc_simulator.py           # Replays the timeline, models executive/core-set overflow, serves WebSocket
+│   ├── fabric_forwarder.py        # Forwards NDJSON telemetry into a real Fabric Eventstream (Event Hub protocol)
 │   └── requirements.txt
 ├── dsky-ui/
 │   ├── index.html / style.css / app.js   # Live DSKY replica UI (WebSocket client)
@@ -144,32 +145,50 @@ It connects to `ws://localhost:8765` and shows, live:
 
 ## 6. Wiring into Microsoft Fabric (Operational Agent debugging)
 
-`data/telemetry_stream.ndjson` is shaped to be pushed into a **Fabric
-Eventstream** (Custom App source) → **Eventhouse** table → analyzed by a
-**Fabric Real-Time Intelligence Operations Agent**. See:
+**Nothing is connected to a live Fabric workspace by default.** Everything
+under `fabric/` (schema, KQL, playbook, transcript) is a ready-to-run
+specification and a worked illustrative example — not a live integration —
+because this repo has no Azure/Fabric credentials of its own. To make it
+real:
 
-- `fabric/eventstream_schema.json` — source/table field mapping.
-- `fabric/kql/create_table_and_mapping.kql` — table DDL + ingestion mapping.
-- `fabric/kql/anomaly_detection_queries.kql` — queries that surface the
-  core-set-exhaustion pattern, including a `series_decompose_anomalies`
-  query matching Fabric's built-in anomaly detection.
-- `fabric/operations_agent_playbook.md` — how to configure the Operations
-  Agent (trigger condition, Teams notification, Copilot Investigator
-  insights, suggested remediation), matching Fabric's real
-  detect → notify → explain → act workflow.
-- `fabric/incident_investigation_transcript.md` — a worked example of the
-  natural-language root-cause report Copilot's Investigator insights would
-  produce from this data: correlating `radar_auto_slew` with
-  `core_sets_used` and the `1202`/`1201` alarm codes, concluding the radar
-  CDU flood was the cause, and recommending the same "GO" call Steve Bales'
-  team made in 1969 — plus a forward-looking fix (don't leave the radar in
-  AUTO/SLEW during descent).
+1. In a Fabric workspace, create a Real-Time Intelligence **Eventhouse**
+   and run `fabric/kql/create_table_and_mapping.kql` to create the
+   `AgcTelemetry` table + JSON ingestion mapping.
+2. Create an **Eventstream** with a "Custom App" (Event Hub-compatible)
+   source, wired as a destination into that table.
+3. Copy the connection string + event hub name it gives you, then run:
 
-This repository doesn't include live Fabric credentials, so the Fabric-side
-artifacts are provided as ready-to-run KQL/config plus a realistic sample
-output; wire `telemetry_stream.ndjson` into an actual Eventstream (e.g. via
-the Event Hub-compatible endpoint) to see it work against a live Fabric
-workspace.
+   ```powershell
+   cd simulator
+   $env:FABRIC_EVENTHUB_CONNECTION_STR = "Endpoint=sb://...;SharedAccessKeyName=...;SharedAccessKey=...;EntityPath=es_xxxx"
+   $env:FABRIC_EVENTHUB_NAME = "es_xxxx"
+   python fabric_forwarder.py --follow   # run alongside agc_simulator.py to stream live
+   # or, to backfill whatever is already in data/telemetry_stream.ndjson:
+   python fabric_forwarder.py --replay
+   ```
+
+   Use `--dry-run` (no credentials needed) to see exactly what would be
+   sent without a real Fabric connection.
+4. Once data is flowing, run the queries in
+   `fabric/kql/anomaly_detection_queries.kql` directly in the Eventhouse,
+   and configure the Operations Agent per
+   `fabric/operations_agent_playbook.md` (trigger condition, Teams
+   notification, Copilot Investigator insights, suggested remediation).
+
+Where you'd then see it in the Fabric portal:
+- **Real-Time Intelligence → Eventhouse → `AgcTelemetry`** — the raw
+  ingested rows (query with the KQL above).
+- **Eventstream** designer view — live throughput graph as
+  `fabric_forwarder.py` sends batches.
+- **Operations Agent** page for that Eventhouse — trigger history and
+  Teams notifications once configured.
+
+`fabric/incident_investigation_transcript.md` remains a hand-written
+example of the natural-language root-cause report Copilot's Investigator
+insights would produce once wired up this way — correlating
+`radar_auto_slew` with `core_sets_used` and the `1202`/`1201` alarm codes,
+concluding the radar CDU flood was the cause, and recommending the same
+"GO" call Steve Bales' team made in 1969, plus a forward-looking fix.
 
 ## 7. Accuracy notes
 

@@ -19,8 +19,10 @@ function connect() {
   };
 }
 
-function setLamp(id, on) {
-  document.getElementById(id).classList.toggle("on", !!on);
+function setLamp(id, on, caution) {
+  const el = document.getElementById(id);
+  el.classList.toggle("on", !!on);
+  el.classList.toggle("caution", !!on && !!caution);
 }
 
 function pad(n, w) { return String(n).padStart(w, "0"); }
@@ -41,10 +43,10 @@ function render(d) {
   document.getElementById("r3-val").textContent = d.r3;
   document.getElementById("get-clock").textContent = secondsToGet(d.sim_get_seconds);
 
-  setLamp("lamp-prog", d.prog_alarm);
-  setLamp("lamp-restart", d.restart_lamp);
-  setLamp("lamp-keyrel", d.key_rel);
-  setLamp("lamp-stby", d.stby);
+  setLamp("lamp-prog", d.prog_alarm, true);
+  setLamp("lamp-restart", d.restart_lamp, true);
+  setLamp("lamp-keyrel", d.key_rel, false);
+  setLamp("lamp-stby", d.stby, false);
   // Lamps not modeled by the simulator (no source signal driving them yet):
   // UPLINK ACTY, TEMP, NO ATT, GIMBAL LOCK, OPR ERR, TRACKER, ALT, VEL.
   document.getElementById("comp-acty").classList.toggle("on", Math.floor(d.sim_get_seconds * 2) % 2 === 0);
