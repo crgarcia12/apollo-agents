@@ -122,11 +122,18 @@ h1 .sub { font-size: 13px; color: #7a8; font-weight: normal; }
 .vn-digits { font-size: 18px; }
 .reg-digits { font-size: 22px; }
 
-/* ---- Keypad ---- */
+/* ---- Keypad ----
+   7 columns x 3 rows, matching the reference photo exactly: VERB/NOUN
+   are normal single-row buttons in column 1 (row 3 blank beneath NOUN);
+   RSET is a single TALL button occupying its own column 7, spanning
+   rows 2-3 (i.e. the height of ENTR+KEY REL combined) -- it is NOT
+   stacked directly under KEY REL in the same column. */
 .keypad {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, 1fr) 1fr;
+  grid-template-rows: repeat(3, 1fr);
   gap: 5px;
+  height: 168px;
 }
 .keypad button {
   background: #1b1e26;
@@ -134,13 +141,16 @@ h1 .sub { font-size: 13px; color: #7a8; font-weight: normal; }
   border: 1px solid #050505;
   border-top: 1px solid #34394a;
   border-radius: 3px;
-  padding: 11px 0;
+  padding: 0;
   font-family: 'Share Tech Mono', monospace;
   font-size: 12px;
   font-weight: bold;
   box-shadow: 0 2px 0 rgba(0,0,0,.35);
+  width: 100%;
+  height: 100%;
 }
 .keypad button.fn { font-size: 9px; letter-spacing: .3px; }
+.keypad button.tall { font-size: 10px; }
 .keypad button.blank { background: transparent; border-color: transparent; box-shadow: none; }
 .keypad button:active { transform: translateY(1px); box-shadow: none; }
 
