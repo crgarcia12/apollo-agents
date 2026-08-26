@@ -11,82 +11,107 @@
     <h1>APOLLO 11 &mdash; DSKY <span class="sub">(Display &amp; Keyboard) Live Simulator</span></h1>
     <div class="panels">
 
-      <!-- Faithful recreation of the physical DSKY replica the user supplied
-           as a reference photo (thedsky.com replica unit): light grey/putty
-           matte plastic case; a single 2-column x 7-row lamp block (2 of the
-           14 positions are blank plates) to the left, unlit lamps rendered
-           as white lenses with black text; a separate BLACK display panel
-           to the right with glowing GREEN 7-segment digits and green
-           "tag" badges for the PROG / VERB / NOUN labels, each numeric row
-           underlined with a thin green rule; and a dark-navy keypad with
-           white legends in the exact 7-column grid photographed (RSET is a
-           TALL button in its own rightmost column spanning rows 2-3, NOT
-           stacked directly under KEY REL as earlier builds had it):
-           VERB +  7  8  9  CLR    .
-           NOUN -  4  5  6  ENTR   RSET (spans rows 2-3)
-           .    0  1  2  3  KEY REL  " -->
-      <div class="dsky">
-        <div class="dsky-case">
-
-          <div class="dsky-top">
-            <div class="lamp-panel">
-              <div class="lamp" id="lamp-uplink"><span>UPLINK<br/>ACTY</span></div>
-              <div class="lamp" id="lamp-temp"><span>TEMP</span></div>
-              <div class="lamp" id="lamp-noatt"><span>NO ATT</span></div>
-              <div class="lamp" id="lamp-gimbal"><span>GIMBAL<br/>LOCK</span></div>
-              <div class="lamp" id="lamp-stby"><span>STBY</span></div>
-              <div class="lamp" id="lamp-prog"><span>PROG</span></div>
-              <div class="lamp" id="lamp-keyrel"><span>KEY REL</span></div>
-              <div class="lamp" id="lamp-restart"><span>RESTART</span></div>
-              <div class="lamp" id="lamp-oprerr"><span>OPR ERR</span></div>
-              <div class="lamp" id="lamp-tracker"><span>TRACKER</span></div>
-              <div class="lamp blank"></div>
-              <div class="lamp" id="lamp-alt"><span>ALT</span></div>
-              <div class="lamp blank"></div>
-              <div class="lamp" id="lamp-vel"><span>VEL</span></div>
-            </div>
-
-            <div class="display-panel">
-              <div class="disp-row disp-top">
-                <span class="numeric-label prog-label">PROG</span>
-                <span id="prog-val" class="digits seven-seg prog-digits">63</span>
-              </div>
-              <div class="disp-row disp-vn">
-                <span class="numeric-label">VERB</span>
-                <span id="verb-val" class="digits seven-seg vn-digits">16</span>
-                <span class="numeric-label">NOUN</span>
-                <span id="noun-val" class="digits seven-seg vn-digits">68</span>
-              </div>
-              <div class="disp-row reg-row"><span id="r1-val" class="digits seven-seg reg-digits">+00102</span></div>
-              <div class="disp-row reg-row"><span id="r2-val" class="digits seven-seg reg-digits">+00063</span></div>
-              <div class="disp-row reg-row"><span id="r3-val" class="digits seven-seg reg-digits">+00090</span></div>
-            </div>
-          </div>
-
-          <div class="keypad">
-            <button class="fn" style="grid-column:1;grid-row:1">VERB</button>
-            <button style="grid-column:2;grid-row:1">+</button>
-            <button style="grid-column:3;grid-row:1">7</button>
-            <button style="grid-column:4;grid-row:1">8</button>
-            <button style="grid-column:5;grid-row:1">9</button>
-            <button class="fn" style="grid-column:6;grid-row:1">CLR</button>
-
-            <button class="fn" style="grid-column:1;grid-row:2">NOUN</button>
-            <button style="grid-column:2;grid-row:2">&minus;</button>
-            <button style="grid-column:3;grid-row:2">4</button>
-            <button style="grid-column:4;grid-row:2">5</button>
-            <button style="grid-column:5;grid-row:2">6</button>
-            <button class="fn" style="grid-column:6;grid-row:2">ENTR</button>
-            <button class="fn tall" style="grid-column:7;grid-row:2 / span 2">RSET</button>
-
-            <button class="blank" style="grid-column:1;grid-row:3"></button>
-            <button style="grid-column:2;grid-row:3">0</button>
-            <button style="grid-column:3;grid-row:3">1</button>
-            <button style="grid-column:4;grid-row:3">2</button>
-            <button style="grid-column:5;grid-row:3">3</button>
-            <button class="fn" style="grid-column:6;grid-row:3">KEY<br/>REL</button>
-          </div>
+      <div class="dsky-stage">
+        <div class="dsky-shadow"></div>
+        <div class="dsky-backplate" aria-hidden="true">
+          <span class="rear-fastener rear-fastener-a"></span>
+          <span class="rear-fastener rear-fastener-b"></span>
+          <span class="rear-fastener rear-fastener-c"></span>
         </div>
+
+        <section class="dsky" aria-label="Apollo Lunar Module DSKY">
+          <div class="faceplate-fastener faceplate-fastener-tl"></div>
+          <div class="faceplate-fastener faceplate-fastener-tr"></div>
+          <div class="faceplate-fastener faceplate-fastener-bl"></div>
+          <div class="faceplate-fastener faceplate-fastener-br"></div>
+
+          <div class="dsky-instruments">
+            <section class="instrument-module lamp-module" aria-label="DSKY annunciator lights">
+              <span class="module-screw screw-tl"></span>
+              <span class="module-screw screw-tr"></span>
+              <span class="module-screw screw-bl"></span>
+              <span class="module-screw screw-br"></span>
+              <div class="lamp-panel">
+                <div class="lamp" id="lamp-uplink"><span>UPLINK<br>ACTY</span></div>
+                <div class="lamp" id="lamp-temp"><span>TEMP</span></div>
+                <div class="lamp" id="lamp-noatt"><span>NO ATT</span></div>
+                <div class="lamp" id="lamp-gimbal"><span>GIMBAL<br>LOCK</span></div>
+                <div class="lamp" id="lamp-stby"><span>STBY</span></div>
+                <div class="lamp" id="lamp-prog"><span>PROG</span></div>
+                <div class="lamp" id="lamp-keyrel"><span>KEY REL</span></div>
+                <div class="lamp" id="lamp-restart"><span>RESTART</span></div>
+                <div class="lamp" id="lamp-oprerr"><span>OPR ERR</span></div>
+                <div class="lamp" id="lamp-tracker"><span>TRACKER</span></div>
+                <div class="lamp lamp-blank" aria-hidden="true"></div>
+                <div class="lamp" id="lamp-alt"><span>ALT</span></div>
+                <div class="lamp lamp-blank" aria-hidden="true"></div>
+                <div class="lamp" id="lamp-vel"><span>VEL</span></div>
+              </div>
+            </section>
+
+            <section class="instrument-module display-module" aria-label="DSKY electroluminescent display">
+              <span class="module-screw screw-tl"></span>
+              <span class="module-screw screw-tr"></span>
+              <span class="module-screw screw-bl"></span>
+              <span class="module-screw screw-br"></span>
+              <div class="display-glass">
+                <div class="display-reflection"></div>
+                <div class="display-status-grid">
+                  <span id="comp-acty" class="comp-acty">COMP<br>ACTY</span>
+                  <div class="display-code code-prog">
+                    <span class="display-label">PROG</span>
+                    <span id="prog-val" class="digits seven-seg code-digits">63</span>
+                  </div>
+                  <div class="display-code code-verb">
+                    <span class="display-label">VERB</span>
+                    <span id="verb-val" class="digits seven-seg code-digits">16</span>
+                  </div>
+                  <div class="display-code code-noun">
+                    <span class="display-label">NOUN</span>
+                    <span id="noun-val" class="digits seven-seg code-digits">68</span>
+                  </div>
+                </div>
+                <div class="registers">
+                  <div class="register"><span id="r1-val" class="digits seven-seg register-digits">+00102</span></div>
+                  <div class="register"><span id="r2-val" class="digits seven-seg register-digits">+00063</span></div>
+                  <div class="register"><span id="r3-val" class="digits seven-seg register-digits">+00090</span></div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section class="keyboard" aria-label="DSKY keyboard">
+            <div class="side-key-bank left-key-bank">
+              <button class="dsky-key function-key" type="button" data-key="VERB">VERB</button>
+              <button class="dsky-key function-key" type="button" data-key="NOUN">NOUN</button>
+            </div>
+
+            <div class="key-matrix">
+              <button class="dsky-key sign-key" type="button" data-key="+">+</button>
+              <button class="dsky-key number-key" type="button" data-key="7">7</button>
+              <button class="dsky-key number-key" type="button" data-key="8">8</button>
+              <button class="dsky-key number-key" type="button" data-key="9">9</button>
+              <button class="dsky-key function-key" type="button" data-key="CLR">CLR</button>
+
+              <button class="dsky-key sign-key" type="button" data-key="-">&minus;</button>
+              <button class="dsky-key number-key" type="button" data-key="4">4</button>
+              <button class="dsky-key number-key" type="button" data-key="5">5</button>
+              <button class="dsky-key number-key" type="button" data-key="6">6</button>
+              <button class="dsky-key function-key" type="button" data-key="PRO">PRO</button>
+
+              <button class="dsky-key number-key" type="button" data-key="0">0</button>
+              <button class="dsky-key number-key" type="button" data-key="1">1</button>
+              <button class="dsky-key number-key" type="button" data-key="2">2</button>
+              <button class="dsky-key number-key" type="button" data-key="3">3</button>
+              <button class="dsky-key function-key key-rel-key" type="button" data-key="KEY REL">KEY<br>REL</button>
+            </div>
+
+            <div class="side-key-bank right-key-bank">
+              <button class="dsky-key function-key" type="button" data-key="ENTR">ENTR</button>
+              <button class="dsky-key function-key" type="button" data-key="RSET">RSET</button>
+            </div>
+          </section>
+        </section>
       </div>
 
       <div class="side">
