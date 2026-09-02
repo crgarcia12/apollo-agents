@@ -2,13 +2,85 @@
 
 const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
 const LANDER_WS_URL = `${socketProtocol}://${window.location.host}/lander/ws`;
+const IS_FABRIC_INTERVENTION_SCENARIO =
+  window.location.pathname.replace(/\/$/, "") === "/apollo-lander";
+const SCENARIO_NAME = IS_FABRIC_INTERVENTION_SCENARIO
+  ? "fabric_intervention"
+  : "standard_lander";
 
 const MISSION_START_GET = "102:42:00";
 const MISSION_END_GET = "102:45:57";
 const MISSION_START_SECONDS = getToSeconds(MISSION_START_GET);
 const MISSION_END_SECONDS = getToSeconds(MISSION_END_GET);
-const MISSION_TIME_SCALE = 3;
+const MISSION_TIME_SCALE = IS_FABRIC_INTERVENTION_SCENARIO ? 1.2 : 3;
 const TELEMETRY_INTERVAL_SECONDS = 0.2;
+const INCIDENT_TELEMETRY_INTERVAL_SECONDS = 1;
+const MEMORY_OVERFLOW_SECONDS = 15;
+const AGC_MEMORY_CAPACITY_WORDS = 2048;
+const OPERATIONS_AGENT_ANALYSIS_SECONDS = 2.5;
+const RADALT_MEMORY_PROGRAM_ID = "RADALT_MONITOR";
+const MEMORY_PROGRAM_DEFINITIONS = [
+  {
+    id: "P64_GUIDANCE",
+    name: "P64 GUIDANCE",
+    verb: 6,
+    noun: 62,
+    baselineWords: 128,
+  },
+  {
+    id: "ATTITUDE_CONTROL",
+    name: "ATTITUDE CONTROL",
+    verb: 16,
+    noun: 20,
+    baselineWords: 96,
+  },
+  {
+    id: "DESCENT_ENGINE",
+    name: "DESCENT ENGINE",
+    verb: 6,
+    noun: 11,
+    baselineWords: 88,
+  },
+  {
+    id: "LANDING_RADAR",
+    name: "LANDING RADAR",
+    verb: 16,
+    noun: 69,
+    baselineWords: 82,
+  },
+  {
+    id: "DSKY_DISPLAY",
+    name: "DSKY DISPLAY",
+    verb: 6,
+    noun: 9,
+    baselineWords: 64,
+  },
+  {
+    id: "DOWNLINK",
+    name: "DOWNLINK",
+    verb: 16,
+    noun: 1,
+    baselineWords: 58,
+  },
+  {
+    id: RADALT_MEMORY_PROGRAM_ID,
+    name: "RADALT MONITOR",
+    verb: 16,
+    noun: 68,
+    baselineWords: 104,
+  },
+];
+const STABLE_PROGRAM_MEMORY_WORDS = MEMORY_PROGRAM_DEFINITIONS
+  .filter((definition) => definition.id !== RADALT_MEMORY_PROGRAM_ID)
+  .reduce((total, definition) => total + definition.baselineWords, 0);
+const RADALT_OVERFLOW_WORDS =
+  AGC_MEMORY_CAPACITY_WORDS - STABLE_PROGRAM_MEMORY_WORDS;
+const DSKY_REMEDIATION = {
+  verb: "21",
+  noun: "68",
+  parameter: "0",
+  command: "V21N68P0",
+};
 
 const GRAVITY = 1.62;
 const MAX_THRUST_ACCELERATION = 4.9;
@@ -26,6 +98,10 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const dom = {
+  pageEyebrow: document.getElementById("page-eyebrow"),
+  pageTitle: document.getElementById("page-title"),
+  objectiveTitle: document.getElementById("objective-title"),
+  objectiveCopy: document.getElementById("objective-copy"),
   canvas: document.getElementById("scene"),
   timelineFill: document.getElementById("timeline-fill"),
   timelineNeedle: document.getElementById("timeline-needle"),
@@ -42,7 +118,9 @@ const dom = {
   soundIcon: document.getElementById("sound-icon"),
   soundLabel: document.getElementById("sound-label"),
   backgroundAudio: document.getElementById("background-audio"),
+  outcomeAudio: document.getElementById("outcome-audio"),
   alarmFlash: document.getElementById("alarm-flash"),
+  alarmLabel: document.getElementById("alarm-label"),
   alarmCode: document.getElementById("alarm-flash-code"),
   alarmNote: document.getElementById("alarm-flash-note"),
   gameStateBadge: document.getElementById("game-state-badge"),
@@ -57,9 +135,16 @@ const dom = {
   coreFill: document.getElementById("core-fill"),
   coreCount: document.getElementById("core-count"),
   coreMax: document.getElementById("core-max"),
+  memoryPanel: document.getElementById("memory-panel"),
+  memoryPercent: document.getElementById("memory-percent"),
+  memoryFill: document.getElementById("memory-fill"),
+  memoryWords: document.getElementById("memory-words"),
+  agentHudState: document.getElementById("agent-hud-state"),
   hudRadar: document.getElementById("hud-radar"),
+  radarLabel: document.getElementById("radar-label"),
   hudAlarm: document.getElementById("hud-alarm"),
   hudRestart: document.getElementById("hud-restart"),
+  agcHint: document.getElementById("agc-hint"),
   playerIdButton: document.getElementById("player-id-button"),
   gameIdButton: document.getElementById("game-id-button"),
   hudPlayerId: document.getElementById("hud-player-id"),
@@ -69,6 +154,22 @@ const dom = {
   eventsSent: document.getElementById("hud-events-sent"),
   serverReceived: document.getElementById("hud-server-received"),
   eventLog: document.getElementById("event-log"),
+  scenarioLink: document.getElementById("scenario-link"),
+  incidentModal: document.getElementById("incident-modal"),
+  incidentProg: document.getElementById("incident-prog"),
+  incidentVerb: document.getElementById("incident-verb"),
+  incidentNoun: document.getElementById("incident-noun"),
+  incidentR1: document.getElementById("incident-r1"),
+  incidentR2: document.getElementById("incident-r2"),
+  incidentR3: document.getElementById("incident-r3"),
+  incidentOprError: document.getElementById("incident-lamp-oprerr"),
+  incidentCommandStatus: document.getElementById("incident-command-status"),
+  incidentPlayerId: document.getElementById("incident-player-id"),
+  incidentGameId: document.getElementById("incident-game-id"),
+  incidentId: document.getElementById("incident-id"),
+  incidentIdButton: document.getElementById("incident-id-button"),
+  operationsAgentState: document.getElementById("operations-agent-state"),
+  operationsAgentAction: document.getElementById("operations-agent-action"),
 };
 
 const ctx = dom.canvas.getContext("2d");
@@ -84,6 +185,9 @@ const controlButtons = new Map(
     button,
   ]),
 );
+const incidentDskyButtons = [
+  ...document.querySelectorAll("[data-dsky-key]"),
+];
 
 const stars = Array.from({ length: 170 }, () => ({
   x: Math.random(),
@@ -124,6 +228,35 @@ let trail = [];
 let particles = [];
 let audioEnabled = true;
 let audioErrorReported = false;
+let outcomeAudioStarted = false;
+let radarAutoSlew = true;
+let incidentId = null;
+let incidentState = "none";
+let incidentWaitSeconds = 0;
+let incidentTriggered = false;
+let alertAudioContext = null;
+let disconnectAlarmGain = null;
+let disconnectAlarmPlayed = false;
+let radioAltimeterMonitorEnabled = true;
+let dskyCommandStatus = IS_FABRIC_INTERVENTION_SCENARIO
+  ? "armed"
+  : "not_required";
+let enteredDskyCommand = "";
+let dskyInputMode = null;
+let dskyInputBuffer = "";
+let dskyEnteredVerb = "";
+let dskyEnteredNoun = "";
+let dskyEnteredParameter = "";
+let dskyParameterSign = "+";
+let programMemory = createInitialProgramMemory();
+let memoryOverflow = false;
+let operationsAgentState = IS_FABRIC_INTERVENTION_SCENARIO
+  ? "monitoring"
+  : "not_enabled";
+let operationsAgentAction = "";
+let operationsAgentConfidencePct = 0;
+let operationsAgentDetectionId = null;
+let agentRecommendationPublished = false;
 const playerId = getOrCreatePlayerId();
 
 function createInitialLander() {
@@ -244,7 +377,183 @@ function landingTargetDistance() {
   return LANDING_PAD_CENTER_X - lander.x;
 }
 
+function configureScenarioPage() {
+  if (!IS_FABRIC_INTERVENTION_SCENARIO) {
+    return;
+  }
+
+  document.title = "Apollo Lander — Fabric Intervention Scenario";
+  dom.pageEyebrow.textContent = "APOLLO 11 · REAL-TIME INCIDENT EXERCISE";
+  dom.pageTitle.innerHTML =
+    'APOLLO LANDER INCIDENT <span>Fabric response scenario</span>';
+  dom.objectiveTitle.textContent = "SURVIVE THE ALARM · RESOLVE IN FABRIC";
+  dom.objectiveCopy.textContent =
+    "Flight pauses on 1202 · Resolve the incident · Resume the landing";
+  dom.agcHint.textContent =
+    "Seven AGC programs share the memory pool. Compare their Fabric telemetry to find the workload that grows toward overflow.";
+  dom.radarLabel.textContent = "RADIO ALT MONITOR";
+  dom.memoryPanel.classList.remove("hidden");
+  dom.overlayKicker.textContent = "APOLLO 11 · FABRIC OPERATIONS";
+  dom.overlayTitle.textContent = "BEGIN INCIDENT EXERCISE";
+  dom.overlayCopy.textContent =
+    "Fly Eagle normally. An AGC executive-overflow alarm will interrupt the descent and require a Fabric intervention.";
+  dom.startButton.textContent = "BEGIN EXERCISE";
+  dom.scenarioLink.href = "/lander";
+  dom.scenarioLink.textContent = "STANDARD LANDER";
+}
+
+function createInitialProgramMemory() {
+  return MEMORY_PROGRAM_DEFINITIONS.map((definition) => ({
+    ...definition,
+    usedWords: definition.baselineWords,
+    growthWordsPerSecond: 0,
+    state: "stable",
+  }));
+}
+
+function radaltProgramMemory() {
+  return programMemory.find(
+    (entry) => entry.id === RADALT_MEMORY_PROGRAM_ID,
+  );
+}
+
+function totalProgramMemoryWords() {
+  return programMemory.reduce(
+    (total, entry) => total + entry.usedWords,
+    0,
+  );
+}
+
+function programMemoryTelemetry() {
+  if (!IS_FABRIC_INTERVENTION_SCENARIO) {
+    return [];
+  }
+  return programMemory.map((entry) => ({
+    program_id: entry.id,
+    program_name: entry.name,
+    verb: entry.verb,
+    noun: entry.noun,
+    memory_used_words: Math.round(entry.usedWords),
+    memory_baseline_words: entry.baselineWords,
+    memory_growth_words_per_second: Number(
+      entry.growthWordsPerSecond.toFixed(3),
+    ),
+    state: entry.state,
+  }));
+}
+
+function updateMemoryMetrics(deltaSeconds) {
+  if (!IS_FABRIC_INTERVENTION_SCENARIO) {
+    return;
+  }
+
+  const radaltMemory = radaltProgramMemory();
+  const previousWords = radaltMemory.usedWords;
+  if (radioAltimeterMonitorEnabled && !memoryOverflow) {
+    const progress = clamp(
+      gameElapsedSeconds / MEMORY_OVERFLOW_SECONDS,
+      0,
+      1,
+    );
+    radaltMemory.usedWords =
+      radaltMemory.baselineWords +
+      (RADALT_OVERFLOW_WORDS - radaltMemory.baselineWords) *
+        Math.pow(progress, 1.65);
+    radaltMemory.state = progress > 0 ? "growing" : "stable";
+    if (progress >= 1) {
+      radaltMemory.usedWords = RADALT_OVERFLOW_WORDS;
+      radaltMemory.state = "overflow";
+      memoryOverflow = true;
+    }
+  } else if (!radioAltimeterMonitorEnabled) {
+    radaltMemory.usedWords += (0 - radaltMemory.usedWords) *
+      Math.min(1, deltaSeconds * 4);
+    if (radaltMemory.usedWords < 0.5) {
+      radaltMemory.usedWords = 0;
+    }
+    radaltMemory.state = "stopped";
+  }
+
+  radaltMemory.growthWordsPerSecond = deltaSeconds > 0
+    ? (radaltMemory.usedWords - previousWords) / deltaSeconds
+    : 0;
+}
+
+function updateOperationsAgentUi() {
+  const stateLabels = {
+    not_enabled: "NOT ENABLED",
+    monitoring: "MONITORING",
+    investigating: "INVESTIGATING",
+    recommendation_ready: "RECOMMENDATION READY",
+    remediation_applied: "REMEDIATION CONFIRMED",
+  };
+  const label = stateLabels[operationsAgentState] || operationsAgentState;
+  dom.agentHudState.textContent = label;
+  dom.agentHudState.classList.toggle(
+    "warning",
+    operationsAgentState === "investigating",
+  );
+  dom.operationsAgentState.textContent = label;
+  dom.operationsAgentState.classList.toggle(
+    "ready",
+    ["recommendation_ready", "remediation_applied"].includes(
+      operationsAgentState,
+    ),
+  );
+  dom.operationsAgentAction.textContent = operationsAgentAction;
+}
+
+function startOperationsAgentInvestigation() {
+  operationsAgentDetectionId = createMessageId();
+  operationsAgentState = "investigating";
+  operationsAgentAction =
+    "Comparing memory growth across seven active programs";
+  operationsAgentConfidencePct = 48;
+  updateOperationsAgentUi();
+  sendGameEvent(
+    "operations_agent_investigation_started",
+    "Incident analysis started comparing memory across seven programs",
+    null,
+    activeAlarmCode,
+  );
+}
+
+function publishOperationsAgentRecommendation() {
+  if (
+    operationsAgentState !== "investigating" ||
+    agentRecommendationPublished
+  ) {
+    return;
+  }
+
+  agentRecommendationPublished = true;
+  operationsAgentState = "recommendation_ready";
+  operationsAgentAction =
+    "V16 N68 RADALT_MONITOR isolated as the growing workload; DSKY remediation published";
+  operationsAgentConfidencePct = 97;
+  dskyCommandStatus = "armed";
+  for (const button of incidentDskyButtons) {
+    button.disabled = false;
+  }
+  setDskyCommandMessage(
+    "FABRIC ANALYSIS COMPLETE · ENTER RUNBOOK COMMAND",
+  );
+  updateOperationsAgentUi();
+  sendGameEvent(
+    "operations_agent_recommendation",
+    "V16 N68 RADALT_MONITOR identified and DSKY remediation published",
+    null,
+    activeAlarmCode,
+  );
+}
+
 function resetMissionState() {
+  stopDisconnectAlarm();
+  dom.backgroundAudio.pause();
+  dom.backgroundAudio.currentTime = 0;
+  dom.outcomeAudio.pause();
+  dom.outcomeAudio.currentTime = 0;
+  outcomeAudioStarted = false;
   lander = createInitialLander();
   gameState = "ready";
   missionSeconds = MISSION_START_SECONDS;
@@ -258,9 +567,28 @@ function resetMissionState() {
   verb = 16;
   noun = 68;
   coreSetsUsed = 4;
+  radarAutoSlew = true;
+  radioAltimeterMonitorEnabled = true;
+  programMemory = createInitialProgramMemory();
+  memoryOverflow = false;
+  operationsAgentState = IS_FABRIC_INTERVENTION_SCENARIO
+    ? "monitoring"
+    : "not_enabled";
+  operationsAgentAction = IS_FABRIC_INTERVENTION_SCENARIO
+    ? "Monitoring memory across seven active programs"
+    : "";
+  operationsAgentConfidencePct = 0;
+  operationsAgentDetectionId = null;
+  agentRecommendationPublished = false;
   restartLampUntil = 0;
   telemetryAccumulator = 0;
   telemetrySequence = 0;
+  incidentId = null;
+  incidentState = "none";
+  incidentWaitSeconds = 0;
+  incidentTriggered = false;
+  disconnectAlarmPlayed = false;
+  resetDskyCommandEntry(false);
   dom.gamePhase.textContent = "P64 · APPROACH";
   dom.timelineMarkers
     .querySelectorAll(".actual-landing")
@@ -273,6 +601,9 @@ function resetMissionState() {
   trailAccumulator = 0;
   trail = [{ x: lander.x, y: lander.y }];
   particles = [];
+  dom.incidentModal.classList.add("hidden");
+  dom.alarmFlash.classList.remove("incident-persistent");
+  document.body.classList.remove("fabric-incident-active");
   clearControls();
   hideAlarm();
   updateTimeline();
@@ -280,22 +611,26 @@ function resetMissionState() {
 }
 
 function startGame() {
-  if (gameState === "flying") {
+  if (gameState === "flying" || gameState === "incident") {
     return;
   }
 
   resetMissionState();
   attemptId = createMessageId();
   gameState = "flying";
+  primeDisconnectAudio();
   playBackgroundAudio();
   dom.overlay.classList.add("hidden");
   setGameStateBadge();
+  const startNote = IS_FABRIC_INTERVENTION_SCENARIO
+    ? "Incident exercise started; awaiting AGC failure"
+    : "Player took manual control of Eagle";
   addLog("system", MISSION_START_GET, "MANUAL CONTROL ACCEPTED - guide Eagle to the landing pad");
-  sendGameEvent("game_start", "Player took manual control of Eagle");
+  sendGameEvent("game_start", startNote);
 }
 
 function restartGame() {
-  if (gameState === "flying") {
+  if (gameState === "flying" || gameState === "incident") {
     sendGameEvent("mission_restart", "Player restarted the landing attempt");
   }
   resetMissionState();
@@ -303,12 +638,17 @@ function restartGame() {
 }
 
 function endGame(outcome, title, copy, eventType, note, touchdown) {
+  stopDisconnectAlarm();
+  dom.incidentModal.classList.add("hidden");
+  dom.alarmFlash.classList.remove("incident-persistent");
+  document.body.classList.remove("fabric-incident-active");
   gameState = outcome;
   lander.throttle = 0;
   clearControls();
   setGameStateBadge();
   addActualLandingMarker(outcome);
   sendGameEvent(eventType, note, touchdown);
+  playOutcomeAudio();
 
   dom.overlayKicker.textContent =
     outcome === "landed" ? "HOUSTON, TRANQUILITY BASE HERE" : "MISSION FAILURE";
@@ -345,14 +685,491 @@ function playBackgroundAudio() {
   }
 }
 
+function playOutcomeAudio() {
+  dom.backgroundAudio.pause();
+  dom.backgroundAudio.currentTime = 0;
+  if (!audioEnabled || dom.outcomeAudio.ended) {
+    return;
+  }
+  if (!outcomeAudioStarted) {
+    dom.outcomeAudio.currentTime = 0;
+    outcomeAudioStarted = true;
+  }
+  if (!dom.outcomeAudio.paused) {
+    return;
+  }
+
+  const playResult = dom.outcomeAudio.play();
+  if (playResult) {
+    playResult.catch((error) => {
+      if (!audioErrorReported) {
+        audioErrorReported = true;
+        console.warn("Landing audio could not start", error);
+      }
+    });
+  }
+}
+
+function primeDisconnectAudio() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return null;
+  }
+  if (!alertAudioContext) {
+    alertAudioContext = new AudioContextClass();
+  }
+  if (alertAudioContext.state === "suspended") {
+    alertAudioContext.resume().catch((error) => {
+      console.warn("Cockpit alert audio could not be enabled", error);
+    });
+  }
+  return alertAudioContext;
+}
+
+function playDisconnectPattern() {
+  if (!audioEnabled) {
+    return;
+  }
+  const audioContext = primeDisconnectAudio();
+  if (!audioContext || audioContext.state !== "running") {
+    return;
+  }
+
+  const patternStart = audioContext.currentTime + 0.02;
+  const masterGain = audioContext.createGain();
+  masterGain.gain.setValueAtTime(1, patternStart);
+  masterGain.connect(audioContext.destination);
+  disconnectAlarmGain = masterGain;
+  const tones = [
+    { offset: 0, frequency: 920 },
+    { offset: 0.18, frequency: 690 },
+    { offset: 0.36, frequency: 920 },
+    { offset: 0.54, frequency: 690 },
+  ];
+  for (const tone of tones) {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const start = patternStart + tone.offset;
+    const end = start + 0.12;
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(tone.frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.linearRampToValueAtTime(0.11, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+    oscillator.connect(gain);
+    gain.connect(masterGain);
+    oscillator.start(start);
+    oscillator.stop(end + 0.02);
+  }
+  window.setTimeout(() => {
+    if (disconnectAlarmGain === masterGain) {
+      masterGain.disconnect();
+      disconnectAlarmGain = null;
+    }
+  }, 800);
+}
+
+function startDisconnectAlarm() {
+  if (disconnectAlarmPlayed) {
+    return;
+  }
+  disconnectAlarmPlayed = true;
+  playDisconnectPattern();
+}
+
+function stopDisconnectAlarm() {
+  if (disconnectAlarmGain !== null) {
+    disconnectAlarmGain.gain.setValueAtTime(
+      0,
+      alertAudioContext?.currentTime || 0,
+    );
+    disconnectAlarmGain.disconnect();
+    disconnectAlarmGain = null;
+  }
+}
+
 function toggleBackgroundAudio() {
   audioEnabled = !audioEnabled;
   if (audioEnabled) {
-    playBackgroundAudio();
+    if (gameState === "landed" || gameState === "crashed") {
+      playOutcomeAudio();
+    } else if (gameState === "flying" || gameState === "incident") {
+      playBackgroundAudio();
+    }
   } else {
     dom.backgroundAudio.pause();
+    dom.outcomeAudio.pause();
+    stopDisconnectAlarm();
   }
   updateSoundButton();
+}
+
+function setDskyCommandMessage(message, tone = "") {
+  dom.incidentCommandStatus.textContent = message;
+  dom.incidentCommandStatus.classList.toggle("error", tone === "error");
+  dom.incidentCommandStatus.classList.toggle("accepted", tone === "accepted");
+}
+
+function resetDskyCommandEntry(showAlarmDisplay) {
+  dskyInputMode = null;
+  dskyInputBuffer = "";
+  dskyEnteredVerb = "";
+  dskyEnteredNoun = "";
+  dskyEnteredParameter = "";
+  dskyParameterSign = "+";
+  enteredDskyCommand = "";
+  dskyCommandStatus = IS_FABRIC_INTERVENTION_SCENARIO
+    ? "armed"
+    : "not_required";
+  dom.incidentOprError.classList.remove("lit", "opr-error");
+  dom.incidentVerb.textContent = showAlarmDisplay ? "05" : "--";
+  dom.incidentNoun.textContent = showAlarmDisplay ? "09" : "--";
+  dom.incidentR1.textContent = showAlarmDisplay ? "+01202" : "+00000";
+  dom.incidentR2.textContent = showAlarmDisplay ? "+00007" : "+00000";
+  dom.incidentR3.textContent = radioAltimeterMonitorEnabled
+    ? "+00001"
+    : "+00000";
+  setDskyCommandMessage(
+    showAlarmDisplay
+      ? agentRecommendationPublished
+        ? "SELECT VERB AND ENTER THE FABRIC RUNBOOK COMMAND"
+        : "FABRIC INCIDENT ANALYSIS IN PROGRESS"
+      : "DSKY STANDBY",
+  );
+  for (const button of incidentDskyButtons) {
+    button.disabled = !showAlarmDisplay || !agentRecommendationPublished;
+  }
+}
+
+function formatDskyCode(buffer, width) {
+  return buffer.padEnd(width, "-").slice(0, width);
+}
+
+function updateDskyEntryDisplay() {
+  dom.incidentVerb.textContent =
+    dskyInputMode === "verb"
+      ? formatDskyCode(dskyInputBuffer, 2)
+      : dskyEnteredVerb || "05";
+  dom.incidentNoun.textContent =
+    dskyInputMode === "noun"
+      ? formatDskyCode(dskyInputBuffer, 2)
+      : dskyEnteredNoun || "09";
+
+  if (dskyInputMode === "parameter" || dskyEnteredParameter !== "") {
+    const numericParameter =
+      dskyInputBuffer || dskyEnteredParameter.replace(/^[+-]/, "") || "0";
+    const sign =
+      dskyInputMode === "parameter"
+        ? dskyParameterSign
+        : dskyEnteredParameter.startsWith("-")
+          ? "-"
+          : "+";
+    dom.incidentR1.textContent =
+      `${sign}${numericParameter.padStart(5, "0").slice(-5)}`;
+  } else {
+    dom.incidentR1.textContent = "+01202";
+  }
+  dom.incidentR3.textContent = radioAltimeterMonitorEnabled
+    ? "+00001"
+    : "+00000";
+}
+
+function showDskyError(message) {
+  dskyCommandStatus = "rejected";
+  dom.incidentOprError.classList.add("lit", "opr-error");
+  setDskyCommandMessage(`OPR ERR · ${message}`, "error");
+}
+
+function beginDskyEntry(mode) {
+  dskyInputMode = mode;
+  dskyInputBuffer = "";
+  dskyCommandStatus = "entering";
+  dom.incidentOprError.classList.remove("lit", "opr-error");
+  setDskyCommandMessage(
+    mode === "verb" ? "ENTER TWO-DIGIT VERB, THEN ENTR" : "ENTER TWO-DIGIT NOUN, THEN ENTR",
+  );
+  updateDskyEntryDisplay();
+}
+
+function currentDskyCommand() {
+  const parameter = dskyEnteredParameter || "?";
+  return `V${dskyEnteredVerb || "??"}N${dskyEnteredNoun || "??"}P${parameter}`;
+}
+
+function rejectDskyCommand() {
+  enteredDskyCommand = currentDskyCommand();
+  showDskyError(
+    `COMMAND ${enteredDskyCommand} REJECTED · PRESS RSET AND TRY AGAIN`,
+  );
+  sendGameEvent(
+    "dsky_command_rejected",
+    `DSKY remediation rejected: ${enteredDskyCommand}`,
+  );
+}
+
+function acceptDskyCommand() {
+  enteredDskyCommand = DSKY_REMEDIATION.command;
+  dskyCommandStatus = "accepted";
+  radioAltimeterMonitorEnabled = false;
+  radarAutoSlew = false;
+  memoryOverflow = false;
+  const radaltMemory = radaltProgramMemory();
+  radaltMemory.growthWordsPerSecond =
+    (0 - radaltMemory.usedWords) / TELEMETRY_INTERVAL_SECONDS;
+  radaltMemory.usedWords = 0;
+  radaltMemory.state = "stopped";
+  operationsAgentState = "remediation_applied";
+  operationsAgentAction =
+    "Runbook command accepted; V16 N68 RADALT_MONITOR stopped";
+  operationsAgentConfidencePct = 100;
+  updateOperationsAgentUi();
+  dom.incidentOprError.classList.remove("lit", "opr-error");
+  updateDskyEntryDisplay();
+  setDskyCommandMessage(
+    "COMMAND ACCEPTED · RADIO ALT MONITOR OFF · RESTARTING GUIDANCE",
+    "accepted",
+  );
+  for (const button of incidentDskyButtons) {
+    button.disabled = true;
+  }
+  addLog(
+    "restart",
+    secondsToGet(missionSeconds),
+    "DSKY V21 N68 PARAM 0 ACCEPTED - RADIO ALT MONITOR OFF",
+  );
+  sendGameEvent(
+    "dsky_command_accepted",
+    "V21 N68 parameter 0 command disabled the radio-altimeter monitor",
+  );
+  resolveFabricIncident();
+}
+
+function commitDskyEntry() {
+  if (dskyInputMode === "verb") {
+    if (dskyInputBuffer.length !== 2) {
+      showDskyError("VERB REQUIRES TWO DIGITS");
+      return;
+    }
+    dskyEnteredVerb = dskyInputBuffer;
+    dskyInputMode = null;
+    dskyInputBuffer = "";
+    setDskyCommandMessage(`VERB ${dskyEnteredVerb} STORED · SELECT NOUN`);
+    updateDskyEntryDisplay();
+    return;
+  }
+
+  if (dskyInputMode === "noun") {
+    if (dskyInputBuffer.length !== 2) {
+      showDskyError("NOUN REQUIRES TWO DIGITS");
+      return;
+    }
+    dskyEnteredNoun = dskyInputBuffer;
+    dskyInputMode = "parameter";
+    dskyInputBuffer = "";
+    dskyParameterSign = "+";
+    setDskyCommandMessage("ENTER RUNBOOK PARAMETER, THEN ENTR");
+    updateDskyEntryDisplay();
+    return;
+  }
+
+  if (dskyInputMode === "parameter") {
+    if (dskyInputBuffer.length === 0) {
+      showDskyError("PARAMETER IS REQUIRED");
+      return;
+    }
+    const numericParameter = String(Number(dskyInputBuffer));
+    dskyEnteredParameter =
+      dskyParameterSign === "-" && numericParameter !== "0"
+        ? `-${numericParameter}`
+        : numericParameter;
+    dskyInputMode = null;
+    dskyInputBuffer = "";
+    updateDskyEntryDisplay();
+    if (
+      dskyEnteredVerb === DSKY_REMEDIATION.verb &&
+      dskyEnteredNoun === DSKY_REMEDIATION.noun &&
+      dskyEnteredParameter === DSKY_REMEDIATION.parameter
+    ) {
+      acceptDskyCommand();
+    } else {
+      rejectDskyCommand();
+    }
+    return;
+  }
+
+  showDskyError("SELECT VERB OR NOUN FIRST");
+}
+
+function handleIncidentDskyKey(key) {
+  if (gameState !== "incident" || dskyCommandStatus === "accepted") {
+    return;
+  }
+  if (!agentRecommendationPublished) {
+    setDskyCommandMessage(
+      "WAIT FOR FABRIC INCIDENT ANALYSIS",
+    );
+    return;
+  }
+
+  if (/^\d$/.test(key)) {
+    if (dskyInputMode === null) {
+      if (dskyEnteredVerb && dskyEnteredNoun) {
+        dskyInputMode = "parameter";
+      } else {
+        showDskyError("SELECT VERB OR NOUN FIRST");
+        return;
+      }
+    }
+    const maxLength = dskyInputMode === "parameter" ? 5 : 2;
+    if (dskyInputBuffer.length < maxLength) {
+      dskyInputBuffer += key;
+    }
+    dskyCommandStatus = "entering";
+    dom.incidentOprError.classList.remove("lit", "opr-error");
+    updateDskyEntryDisplay();
+    return;
+  }
+
+  if (key === "VERB" || key === "NOUN") {
+    beginDskyEntry(key.toLowerCase());
+    return;
+  }
+
+  if (key === "+" || key === "-") {
+    if (dskyInputMode !== "parameter") {
+      showDskyError("SIGN IS ONLY VALID FOR THE PARAMETER");
+      return;
+    }
+    dskyParameterSign = key;
+    updateDskyEntryDisplay();
+    return;
+  }
+
+  if (key === "ENTR") {
+    commitDskyEntry();
+    return;
+  }
+
+  if (key === "CLR") {
+    if (dskyInputBuffer.length > 0) {
+      dskyInputBuffer = dskyInputBuffer.slice(0, -1);
+      updateDskyEntryDisplay();
+    } else {
+      showDskyError("NOTHING TO CLEAR");
+    }
+    return;
+  }
+
+  if (key === "RSET") {
+    resetDskyCommandEntry(true);
+    setDskyCommandMessage("COMMAND CLEARED · ENTER RUNBOOK COMMAND");
+    return;
+  }
+
+  showDskyError(`${key} IS NOT USED BY THIS RUNBOOK`);
+}
+
+function triggerFabricIncident(event) {
+  if (!IS_FABRIC_INTERVENTION_SCENARIO || incidentTriggered) {
+    return;
+  }
+
+  incidentTriggered = true;
+  incidentId = createMessageId();
+  incidentState = "waiting";
+  incidentWaitSeconds = 0;
+  gameState = "incident";
+  program = event.program || guidanceProgram;
+  verb = event.verb ?? 5;
+  noun = event.noun ?? 9;
+  activeAlarmCode = String(event.code || "1202");
+  activeAlarmNote =
+    event.note || "Executive overflow: no available core sets";
+  coreSetsUsed = MAX_CORE_SETS;
+  const radaltMemory = radaltProgramMemory();
+  radaltMemory.usedWords = RADALT_OVERFLOW_WORDS;
+  radaltMemory.growthWordsPerSecond = 0;
+  radaltMemory.state = "overflow";
+  memoryOverflow = true;
+  operationsAgentAction =
+    "Memory overflow detected; comparing seven program allocations";
+  lander.throttle = 0;
+  clearControls();
+  resetDskyCommandEntry(true);
+
+  dom.alarmLabel.textContent = "AUTOPILOT DISCONNECT";
+  showAlarm(activeAlarmCode, activeAlarmNote);
+  dom.alarmFlash.classList.add("incident-persistent");
+  document.body.classList.add("fabric-incident-active");
+
+  dom.gamePhase.textContent = `${program} · FLIGHT PAUSED`;
+  dom.incidentProg.textContent = String(program).replace(/^P/, "").padStart(2, "0");
+  dom.incidentPlayerId.textContent = playerId;
+  dom.incidentGameId.textContent = attemptId;
+  dom.incidentId.textContent = incidentId;
+  dom.incidentIdButton.title = `Copy Incident ID: ${incidentId}`;
+  dom.incidentModal.classList.remove("hidden");
+  startOperationsAgentInvestigation();
+
+  addLog(
+    "alarm",
+    secondsToGet(missionSeconds),
+    `AUTOPILOT DISCONNECT [${activeAlarmCode}] - FLIGHT FROZEN FOR FABRIC`,
+  );
+  sendGameEvent(
+    "autopilot_disconnect",
+    "AGC executive overflow froze the player-controlled descent",
+    null,
+    activeAlarmCode,
+  );
+  sendGameEvent(
+    "fabric_intervention_required",
+    "Waiting for a Fabric remediation signal before flight can resume",
+    null,
+    activeAlarmCode,
+  );
+  startDisconnectAlarm();
+  incidentDskyButtons[0]?.focus();
+}
+
+function resolveFabricIncident() {
+  if (
+    gameState !== "incident" ||
+    incidentState !== "waiting" ||
+    dskyCommandStatus !== "accepted"
+  ) {
+    return;
+  }
+
+  incidentState = "resolved";
+  gameState = "flying";
+  radarAutoSlew = false;
+  radioAltimeterMonitorEnabled = false;
+  memoryOverflow = false;
+  operationsAgentState = "remediation_applied";
+  operationsAgentConfidencePct = 100;
+  activeAlarmCode = null;
+  activeAlarmNote = "";
+  coreSetsUsed = 2;
+  restartLampUntil = gameElapsedSeconds + 2.5;
+  stopDisconnectAlarm();
+  hideAlarm();
+  dom.incidentModal.classList.add("hidden");
+  document.body.classList.remove("fabric-incident-active");
+  dom.gamePhase.textContent = `${program} · FABRIC REMEDIATION APPLIED`;
+  addLog(
+    "restart",
+    secondsToGet(missionSeconds),
+    "FABRIC RUNBOOK COMPLETE - RADIO ALT MONITOR OFF - FLIGHT RESUMED",
+  );
+  sendGameEvent(
+    "fabric_intervention_resolved",
+    "V21 N68 parameter 0 accepted; radio-altimeter monitor disabled and flight resumed",
+  );
+  if (audioEnabled) {
+    playBackgroundAudio();
+  }
+  lastFrameTime = performance.now();
 }
 
 function evaluateTouchdown() {
@@ -456,12 +1273,15 @@ function updatePhysics(deltaSeconds) {
 function updateMission(deltaSeconds) {
   const previousMissionSeconds = missionSeconds;
   gameElapsedSeconds += deltaSeconds;
+  updateMemoryMetrics(deltaSeconds);
   missionSeconds =
     MISSION_START_SECONDS + gameElapsedSeconds * MISSION_TIME_SCALE;
 
   const missionDelta = missionSeconds - previousMissionSeconds;
   if (!activeAlarmCode) {
-    coreSetsUsed = Math.min(MAX_CORE_SETS - 0.05, coreSetsUsed + missionDelta * 0.12);
+    coreSetsUsed = radarAutoSlew
+      ? Math.min(MAX_CORE_SETS - 0.05, coreSetsUsed + missionDelta * 0.12)
+      : Math.max(1.4, coreSetsUsed - missionDelta * 0.2);
   }
 
   while (
@@ -473,10 +1293,42 @@ function updateMission(deltaSeconds) {
       applyMissionEvent(event);
     }
     missionEventCursor += 1;
+    if (gameState === "incident") {
+      break;
+    }
   }
 }
 
 function applyMissionEvent(event) {
+  if (
+    event.type === "alarm" &&
+    IS_FABRIC_INTERVENTION_SCENARIO &&
+    !incidentTriggered
+  ) {
+    triggerFabricIncident(event);
+    return;
+  }
+
+  if (
+    event.type === "alarm" &&
+    IS_FABRIC_INTERVENTION_SCENARIO &&
+    incidentState === "resolved" &&
+    !radarAutoSlew
+  ) {
+    addLog(
+      "event",
+      event.get,
+      `ALARM [${event.code}] PREVENTED - FABRIC REMEDIATION REMOVED RADAR LOAD`,
+    );
+    sendGameEvent(
+      "alarm_prevented",
+      `Fabric remediation prevented historical ${event.code} alarm`,
+      null,
+      String(event.code),
+    );
+    return;
+  }
+
   if (event.type === "program") {
     guidanceProgram = event.program || guidanceProgram;
     guidanceVerb = event.verb ?? guidanceVerb;
@@ -525,7 +1377,9 @@ function showAlarm(code, note) {
 }
 
 function hideAlarm() {
+  dom.alarmLabel.textContent = "PROGRAM ALARM";
   dom.alarmFlash.classList.add("hidden");
+  dom.alarmFlash.classList.remove("incident-persistent");
 }
 
 function clearControls() {
@@ -632,10 +1486,30 @@ function renderHud() {
   dom.coreFill.style.width = `${(coreSetsUsed / MAX_CORE_SETS) * 100}%`;
   dom.coreCount.textContent = String(Math.round(coreSetsUsed));
   dom.coreMax.textContent = String(MAX_CORE_SETS);
+  if (IS_FABRIC_INTERVENTION_SCENARIO) {
+    const memoryUsedWords = totalProgramMemoryWords();
+    const memoryUtilizationPct = clamp(
+      (memoryUsedWords / AGC_MEMORY_CAPACITY_WORDS) * 100,
+      0,
+      100,
+    );
+    dom.memoryPercent.textContent = `${memoryUtilizationPct.toFixed(1)}%`;
+    dom.memoryPercent.classList.toggle("warning", memoryOverflow);
+    dom.memoryFill.style.width = `${memoryUtilizationPct}%`;
+    dom.memoryFill.classList.toggle("overflow", memoryOverflow);
+    dom.memoryWords.textContent =
+      `${Math.round(memoryUsedWords)} / ${AGC_MEMORY_CAPACITY_WORDS}`;
+    updateOperationsAgentUi();
+  }
   dom.hudAlarm.textContent = activeAlarmCode || "—";
   dom.hudAlarm.classList.toggle("warning", Boolean(activeAlarmCode));
   dom.hudRestart.textContent = restartActive ? "ACTIVE" : "ARMED";
   dom.hudRestart.classList.toggle("warning", restartActive);
+  const radarMonitorActive = IS_FABRIC_INTERVENTION_SCENARIO
+    ? radioAltimeterMonitorEnabled
+    : radarAutoSlew;
+  dom.hudRadar.textContent = radarMonitorActive ? "ON" : "OFF";
+  dom.hudRadar.classList.toggle("warning", radarMonitorActive);
   dom.targetBearing.textContent =
     Math.abs(targetDistance) < LANDING_PAD_HALF_WIDTH_M
       ? "TARGET BELOW"
@@ -656,6 +1530,27 @@ function buildTelemetryPayload(kind, eventType, note = "", code = null, touchdow
     kind,
     player_id: playerId,
     attempt_id: attemptId,
+    scenario: SCENARIO_NAME,
+    incident_id: incidentId,
+    incident_state: incidentState,
+    incident_wait_seconds: Number(incidentWaitSeconds.toFixed(3)),
+    requires_fabric_action: incidentState === "waiting",
+    recommended_dsky_command:
+      IS_FABRIC_INTERVENTION_SCENARIO && agentRecommendationPublished
+      ? DSKY_REMEDIATION.command
+      : "",
+    entered_dsky_command: enteredDskyCommand,
+    dsky_command_status: dskyCommandStatus,
+    radio_altimeter_monitor_enabled: radioAltimeterMonitorEnabled,
+    memory_pool_capacity_words: IS_FABRIC_INTERVENTION_SCENARIO
+      ? AGC_MEMORY_CAPACITY_WORDS
+      : null,
+    program_memory: programMemoryTelemetry(),
+    memory_overflow: memoryOverflow,
+    operations_agent_state: operationsAgentState,
+    operations_agent_action: operationsAgentAction,
+    operations_agent_confidence_pct: operationsAgentConfidencePct,
+    operations_agent_detection_id: operationsAgentDetectionId,
     sequence: telemetrySequence++,
     client_event_time: new Date().toISOString(),
     mission_get: secondsToGet(missionSeconds),
@@ -671,7 +1566,7 @@ function buildTelemetryPayload(kind, eventType, note = "", code = null, touchdow
     note,
     prog_alarm: Boolean(activeAlarmCode),
     restart_lamp: gameElapsedSeconds < restartLampUntil,
-    radar_auto_slew: true,
+    radar_auto_slew: radarAutoSlew,
     core_sets_used: Math.round(coreSetsUsed),
     max_core_sets: MAX_CORE_SETS,
     lander_x_m: Number(lander.x.toFixed(3)),
@@ -705,12 +1600,15 @@ function sendPayload(payload) {
   return true;
 }
 
-function sendGameTelemetry() {
+function sendGameTelemetry(
+  eventType = "game_telemetry",
+  note = "Player-controlled lunar module physics sample",
+) {
   sendPayload(
     buildTelemetryPayload(
       "lander_game_telemetry",
-      "game_telemetry",
-      "Player-controlled lunar module physics sample",
+      eventType,
+      note,
     ),
   );
 }
@@ -1270,11 +2168,29 @@ function frame(now) {
     updatePhysics(deltaSeconds);
     if (gameState === "flying") {
       updateMission(deltaSeconds);
+    }
+    if (gameState === "flying") {
       telemetryAccumulator += deltaSeconds;
       if (telemetryAccumulator >= TELEMETRY_INTERVAL_SECONDS) {
         telemetryAccumulator %= TELEMETRY_INTERVAL_SECONDS;
         sendGameTelemetry();
       }
+    }
+  } else if (gameState === "incident") {
+    incidentWaitSeconds += deltaSeconds;
+    if (
+      incidentWaitSeconds >= OPERATIONS_AGENT_ANALYSIS_SECONDS &&
+      operationsAgentState === "investigating"
+    ) {
+      publishOperationsAgentRecommendation();
+    }
+    telemetryAccumulator += deltaSeconds;
+    if (telemetryAccumulator >= INCIDENT_TELEMETRY_INTERVAL_SECONDS) {
+      telemetryAccumulator %= INCIDENT_TELEMETRY_INTERVAL_SECONDS;
+      sendGameTelemetry(
+        "incident_waiting",
+        "Flight remains frozen while waiting for Fabric remediation",
+      );
     }
   }
 
@@ -1307,7 +2223,10 @@ function bindControls() {
       restartGame();
       return;
     }
-    if (event.code === "Enter" && gameState !== "flying") {
+    if (
+      event.code === "Enter" &&
+      ["ready", "landed", "crashed"].includes(gameState)
+    ) {
       event.preventDefault();
       startGame();
       return;
@@ -1351,15 +2270,27 @@ function bindControls() {
   dom.gameIdButton.addEventListener("click", () => {
     copyIdentifier(attemptId, "GAME ID");
   });
+  dom.incidentIdButton.addEventListener("click", () => {
+    copyIdentifier(incidentId, "INCIDENT ID");
+  });
+  for (const button of incidentDskyButtons) {
+    button.addEventListener("click", () => {
+      button.classList.add("pressed");
+      window.setTimeout(() => button.classList.remove("pressed"), 110);
+      handleIncidentDskyKey(button.dataset.dskyKey);
+    });
+  }
 }
 
 async function initialize() {
   dom.startButton.disabled = true;
+  configureScenarioPage();
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
   await loadMissionTimeline();
   resetMissionState();
   dom.backgroundAudio.volume = 0.42;
+  dom.outcomeAudio.volume = 0.58;
   updateSoundButton();
   bindControls();
   dom.startButton.disabled = false;

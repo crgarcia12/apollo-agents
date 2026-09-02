@@ -13,7 +13,7 @@ and Copilot Investigator insights to analyze (see
 This is the missing "wire it up for real" piece: nothing in this repo
 talks to an actual Fabric workspace until you run this script with a real
 connection string. Without that, only the local NDJSON file and the
-simulated/illustrative fabric/*.md docs exist.
+the fabric/*.md docs exist.
 
 Setup (one-time, in the Fabric portal):
     1. Workspace -> Real-Time Intelligence -> new Eventstream.

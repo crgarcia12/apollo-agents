@@ -108,7 +108,8 @@ apollo11-agc-demo/
 ├── lander-2d/
 │   ├── index.html / style.css / app.js   # Playable 2D lunar-landing game
 ├── audio/
-│   └── WhatAldrinSaw.mp3                 # Looping lander background audio
+│   ├── descent.mp3                       # Looping powered-descent audio
+│   └── landed.mp3                        # Landing and crash outcome audio
 ├── fabric/
 │   ├── eventstream_schema.json           # Fabric Eventstream source/table schema
 │   ├── kql/create_table_and_mapping.kql  # Eventhouse table + ingestion mapping
@@ -168,8 +169,10 @@ python web_app.py           # http://localhost:8000 (SERVER_PORT/PORT to change)
   landing must be inside the illuminated pad at <= 5 m/s vertical speed,
   <= 3 m/s horizontal speed, and <= 12 degrees pitch. Landing contact
   stops the vehicle on the terrain, including after a hard landing.
-- `audio/WhatAldrinSaw.mp3` begins after the player starts the mission,
-  loops continuously, and can be muted with the sound button or `M`.
+- `audio/descent.mp3` begins after the player starts the mission and loops
+  continuously through normal flight and the incident pause. On either a
+  safe landing or crash, it stops and `audio/landed.mp3` plays once. Both
+  tracks follow the sound button and `M` mute control.
 - The top timeline advances through the real Apollo 11 GET sequence. The
   1202/1201 executive-overflow alarms and AGC restarts still occur while
   the player remains in control.
@@ -183,6 +186,22 @@ python web_app.py           # http://localhost:8000 (SERVER_PORT/PORT to change)
   Fabric HUD card and can be clicked to copy the full UUID for Kusto.
   Clearing browser storage or using an incognito window creates a new
   Player ID.
+- `http://localhost:8000/apollo-lander` — the interrupted-flight version.
+  After about fifteen seconds, the historical 1202 alarm triggers one original
+  cockpit-style autopilot-disconnect warning, freezes the lander physics
+  and mission clock, and opens a DSKY incident modal. The looping radio
+  track continues underneath the one-shot warning and paused-flight state.
+  During those fifteen seconds, seven program-memory allocations are
+  streamed to Fabric. Six remain constant while the allocation associated
+  with `V16 N68` grows until the shared pool reaches capacity. Comparing
+  the seven time series identifies the radio-altimeter monitor and leads
+  to the hidden DSKY recovery command. The player must retrieve the
+  recommendation from Fabric using the Incident ID rather than seeing it
+  in the game.
+  Incorrect commands light `OPR ERR`; the correct command disables the
+  monitor, drops memory to a safe level, records acceptance
+  in Fabric, prevents subsequent overload alarms, and resumes the same
+  flight automatically.
 - `/healthz` reports each live Fabric publisher, queue depth, connected
   game clients, received game-message count, and explicit drop counters.
   Each Fabric destination has an isolated bounded queue, so an outage in
@@ -250,6 +269,33 @@ let selectedGame = "paste-game-id-here";
 AgcTelemetry
 | where game_id == selectedGame
 | order by event_time asc
+```
+
+Compare the seven program-memory allocations for one landing:
+
+```kusto
+let selectedGame = "paste-game-id-here";
+AgcTelemetry
+| where game_id == selectedGame
+| where record_kind == "lander_program_memory"
+| project event_time, memory_program_name,
+          memory_words = memory_program_used_words
+| order by event_time asc
+| render timechart
+```
+
+Find every flight currently waiting for a Fabric action:
+
+```kusto
+AgcTelemetry
+| where scenario == "fabric_intervention" and isnotempty(incident_id)
+| summarize arg_max(event_time, *) by incident_id
+| where incident_state == "waiting" and requires_fabric_action
+| project event_time, player_id, game_id, incident_id, code,
+          incident_wait_seconds, operations_agent_state,
+          operations_agent_action, recommended_dsky_command,
+          dsky_command_status, mission_get
+| order by event_time desc
 ```
 
 `fabric/incident_investigation_transcript.md` remains a hand-written

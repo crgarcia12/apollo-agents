@@ -16,6 +16,37 @@
     game_id: string,
     session_id: string,
     attempt_id: string,
+    scenario: string,
+    incident_id: string,
+    incident_state: string,
+    incident_wait_seconds: real,
+    requires_fabric_action: bool,
+    recommended_dsky_command: string,
+    entered_dsky_command: string,
+    dsky_command_status: string,
+    radio_altimeter_monitor_enabled: bool,
+    agc_memory_used_words: int,
+    agc_memory_capacity_words: int,
+    agc_memory_utilization_pct: real,
+    agc_memory_growth_words_per_second: real,
+    memory_overflow: bool,
+    offending_program: string,
+    offending_task: string,
+    operations_agent_state: string,
+    operations_agent_action: string,
+    operations_agent_confidence_pct: real,
+    operations_agent_detection_id: string,
+    memory_sample_id: string,
+    memory_pool_capacity_words: int,
+    memory_program_id: string,
+    memory_program_name: string,
+    memory_program_verb: int,
+    memory_program_noun: int,
+    memory_program_used_words: int,
+    memory_program_baseline_words: int,
+    memory_program_growth_words_per_second: real,
+    memory_program_utilization_pct: real,
+    memory_program_state: string,
     connection_id: string,
     message_id: string,
     sequence: long,
@@ -67,6 +98,37 @@
 '    {"column":"game_id","path":"$.game_id"},'
 '    {"column":"session_id","path":"$.session_id"},'
 '    {"column":"attempt_id","path":"$.attempt_id"},'
+'    {"column":"scenario","path":"$.scenario"},'
+'    {"column":"incident_id","path":"$.incident_id"},'
+'    {"column":"incident_state","path":"$.incident_state"},'
+'    {"column":"incident_wait_seconds","path":"$.incident_wait_seconds"},'
+'    {"column":"requires_fabric_action","path":"$.requires_fabric_action"},'
+'    {"column":"recommended_dsky_command","path":"$.recommended_dsky_command"},'
+'    {"column":"entered_dsky_command","path":"$.entered_dsky_command"},'
+'    {"column":"dsky_command_status","path":"$.dsky_command_status"},'
+'    {"column":"radio_altimeter_monitor_enabled","path":"$.radio_altimeter_monitor_enabled"},'
+'    {"column":"agc_memory_used_words","path":"$.agc_memory_used_words"},'
+'    {"column":"agc_memory_capacity_words","path":"$.agc_memory_capacity_words"},'
+'    {"column":"agc_memory_utilization_pct","path":"$.agc_memory_utilization_pct"},'
+'    {"column":"agc_memory_growth_words_per_second","path":"$.agc_memory_growth_words_per_second"},'
+'    {"column":"memory_overflow","path":"$.memory_overflow"},'
+'    {"column":"offending_program","path":"$.offending_program"},'
+'    {"column":"offending_task","path":"$.offending_task"},'
+'    {"column":"operations_agent_state","path":"$.operations_agent_state"},'
+'    {"column":"operations_agent_action","path":"$.operations_agent_action"},'
+'    {"column":"operations_agent_confidence_pct","path":"$.operations_agent_confidence_pct"},'
+'    {"column":"operations_agent_detection_id","path":"$.operations_agent_detection_id"},'
+'    {"column":"memory_sample_id","path":"$.memory_sample_id"},'
+'    {"column":"memory_pool_capacity_words","path":"$.memory_pool_capacity_words"},'
+'    {"column":"memory_program_id","path":"$.memory_program_id"},'
+'    {"column":"memory_program_name","path":"$.memory_program_name"},'
+'    {"column":"memory_program_verb","path":"$.memory_program_verb"},'
+'    {"column":"memory_program_noun","path":"$.memory_program_noun"},'
+'    {"column":"memory_program_used_words","path":"$.memory_program_used_words"},'
+'    {"column":"memory_program_baseline_words","path":"$.memory_program_baseline_words"},'
+'    {"column":"memory_program_growth_words_per_second","path":"$.memory_program_growth_words_per_second"},'
+'    {"column":"memory_program_utilization_pct","path":"$.memory_program_utilization_pct"},'
+'    {"column":"memory_program_state","path":"$.memory_program_state"},'
 '    {"column":"connection_id","path":"$.connection_id"},'
 '    {"column":"message_id","path":"$.message_id"},'
 '    {"column":"sequence","path":"$.sequence"},'

@@ -1,4 +1,4 @@
-# Simulated Fabric Copilot Investigation — 1202/1201 Program Alarms
+# Fabric Copilot Investigation — 1202/1201 Program Alarms
 
 This is a representative transcript of what **Copilot Investigator insights**
 in Microsoft Fabric Real-Time Intelligence would produce once the Operations
@@ -8,6 +8,38 @@ the real historical root cause, using the fields actually present in the
 ingested data.
 
 ---
+
+## Playable landing incident
+
+**[Teams — #mission-control-ops]**
+
+**Operations Agent — Program Memory Investigation**
+
+Memory-pool capacity reached `2048 / 2048` words during the
+`fabric_intervention` scenario.
+
+**Copilot Investigator insights:**
+
+> **Summary:** Seven program allocations were active during the landing.
+> Six remained at their baseline values. `RADALT_MONITOR`, associated
+> with `VERB 16 / NOUN 68`, increased from `104` to `1532` words.
+>
+> **Evidence:** `P64_GUIDANCE`, `ATTITUDE_CONTROL`, `DESCENT_ENGINE`,
+> `LANDING_RADAR`, `DSKY_DISPLAY`, and `DOWNLINK` showed zero allocation
+> growth. `RADALT_MONITOR` was the only program with a positive
+> `memory_program_growth_words_per_second` and accounted for the complete
+> increase that exhausted the shared pool.
+>
+> **Recommendation:** Stop the `V16 N68` monitoring workload with the
+> DSKY runbook command `V21 N68 P0`.
+>
+> **Recovery confirmation:** After the command was accepted,
+> `memory_program_state` changed to `stopped`, its allocation dropped to
+> zero, and landing guidance resumed.
+
+---
+
+## Historical alarm investigation
 
 **[Teams — #mission-control-ops]**
 

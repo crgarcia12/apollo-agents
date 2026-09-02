@@ -43,7 +43,31 @@ LANDER_STREAM_MAX_BYTES = int(
 )
 
 LANDER_MESSAGE_KINDS = {"lander_game_telemetry", "lander_game_event"}
-LANDER_GAME_STATES = {"ready", "flying", "landed", "crashed"}
+LANDER_GAME_STATES = {"ready", "flying", "incident", "landed", "crashed"}
+LANDER_SCENARIOS = {"standard_lander", "fabric_intervention"}
+LANDER_INCIDENT_STATES = {"none", "waiting", "resolved"}
+LANDER_DSKY_COMMAND_STATES = {
+    "not_required",
+    "armed",
+    "entering",
+    "rejected",
+    "accepted",
+}
+LANDER_OPERATIONS_AGENT_STATES = {
+    "not_enabled",
+    "monitoring",
+    "investigating",
+    "recommendation_ready",
+    "remediation_applied",
+}
+LANDER_MEMORY_PROGRAM_COUNT = 7
+LANDER_MEMORY_PROGRAM_STATES = {
+    "stable",
+    "growing",
+    "overflow",
+    "stopped",
+}
+LANDER_REMEDIATION_COMMAND = "V21N68P0"
 LANDER_TOKEN_TTL_SECONDS = 60
 LANDER_MAX_CONNECTIONS = 64
 LANDER_MAX_CONNECTIONS_PER_CLIENT = 3
@@ -54,6 +78,7 @@ LANDER_MAX_SEEN_MESSAGE_IDS = 10_000
 LANDER_NUMBER_LIMITS = {
     "sim_get_seconds": (0.0, 1_000_000.0),
     "game_elapsed_s": (0.0, 3_600.0),
+    "incident_wait_seconds": (0.0, 3_600.0),
     "lander_x_m": (-20_000.0, 20_000.0),
     "lander_altitude_m": (-100.0, 20_000.0),
     "lander_vertical_speed_mps": (-2_000.0, 2_000.0),
@@ -65,6 +90,9 @@ LANDER_NUMBER_LIMITS = {
     "touchdown_vertical_speed_mps": (0.0, 2_000.0),
     "touchdown_horizontal_speed_mps": (0.0, 2_000.0),
     "touchdown_angle_deg": (0.0, 360.0),
+    "agc_memory_utilization_pct": (0.0, 100.0),
+    "agc_memory_growth_words_per_second": (-10_000.0, 10_000.0),
+    "operations_agent_confidence_pct": (0.0, 100.0),
 }
 LANDER_INTEGER_LIMITS = {
     "verb": (0, 99),
@@ -72,6 +100,9 @@ LANDER_INTEGER_LIMITS = {
     "core_sets_used": (0, 100),
     "max_core_sets": (1, 100),
     "sequence": (0, 10_000_000),
+    "agc_memory_used_words": (0, 4_096),
+    "agc_memory_capacity_words": (1, 4_096),
+    "memory_pool_capacity_words": (1, 4_096),
 }
 LANDER_BOOLEAN_FIELDS = {
     "control_left",
@@ -80,19 +111,32 @@ LANDER_BOOLEAN_FIELDS = {
     "prog_alarm",
     "restart_lamp",
     "radar_auto_slew",
+    "requires_fabric_action",
+    "radio_altimeter_monitor_enabled",
+    "memory_overflow",
 }
 LANDER_STRING_LIMITS = {
     "client_event_time": 64,
     "mission_get": 16,
     "event_type": 64,
     "game_state": 16,
+    "scenario": 32,
+    "incident_state": 16,
+    "recommended_dsky_command": 32,
+    "entered_dsky_command": 32,
+    "dsky_command_status": 16,
     "program": 16,
     "code": 16,
     "active_alarm_code": 16,
     "note": 500,
+    "offending_program": 32,
+    "offending_task": 64,
+    "operations_agent_state": 32,
+    "operations_agent_action": 300,
 }
 MISSION_GET_PATTERN = re.compile(r"^\d{3}:\d{2}:\d{2}$")
 EVENT_TYPE_PATTERN = re.compile(r"^[a-z0-9_]{1,64}$")
+MEMORY_PROGRAM_ID_PATTERN = re.compile(r"^[A-Z0-9_]{1,32}$")
 
 
 class AiohttpWebSocketAdapter:
@@ -344,6 +388,160 @@ def _same_origin(request: web.Request) -> bool:
     return parsed.netloc.casefold() == request_host.casefold()
 
 
+def _validated_program_memory(payload: dict, scenario: str) -> list[dict]:
+    value = payload.get("program_memory")
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError("program_memory must be an array")
+    if scenario != "fabric_intervention":
+        if value:
+            raise ValueError(
+                "Standard lander telemetry cannot report program memory"
+            )
+        return []
+    if len(value) != LANDER_MEMORY_PROGRAM_COUNT:
+        raise ValueError(
+            f"program_memory must contain {LANDER_MEMORY_PROGRAM_COUNT} programs"
+        )
+
+    programs = []
+    program_ids = set()
+    verb_noun_pairs = set()
+    for entry in value:
+        if not isinstance(entry, dict):
+            raise ValueError("Each program_memory entry must be an object")
+
+        program_id = entry.get("program_id")
+        if (
+            not isinstance(program_id, str)
+            or not MEMORY_PROGRAM_ID_PATTERN.fullmatch(program_id)
+        ):
+            raise ValueError("program_memory program_id is invalid")
+        if program_id in program_ids:
+            raise ValueError("program_memory program_id values must be unique")
+        program_ids.add(program_id)
+
+        program_name = entry.get("program_name")
+        if not isinstance(program_name, str) or not program_name:
+            raise ValueError("program_memory program_name is required")
+
+        verb = _validated_integer(entry, "verb", 0, 99)
+        noun = _validated_integer(entry, "noun", 0, 99)
+        used_words = _validated_integer(
+            entry,
+            "memory_used_words",
+            0,
+            4_096,
+        )
+        baseline_words = _validated_integer(
+            entry,
+            "memory_baseline_words",
+            0,
+            4_096,
+        )
+        growth = _validated_number(
+            entry,
+            "memory_growth_words_per_second",
+            -10_000.0,
+            10_000.0,
+        )
+        state = entry.get("state")
+        if None in {verb, noun, used_words, baseline_words, growth}:
+            raise ValueError("program_memory numeric fields are required")
+        if state not in LANDER_MEMORY_PROGRAM_STATES:
+            raise ValueError("program_memory state is invalid")
+
+        verb_noun = (verb, noun)
+        if verb_noun in verb_noun_pairs:
+            raise ValueError("program_memory VERB/NOUN pairs must be unique")
+        verb_noun_pairs.add(verb_noun)
+        programs.append({
+            "program_id": program_id,
+            "program_name": program_name[:64],
+            "verb": verb,
+            "noun": noun,
+            "memory_used_words": used_words,
+            "memory_baseline_words": baseline_words,
+            "memory_growth_words_per_second": growth,
+            "state": state,
+        })
+
+    if (16, 68) not in verb_noun_pairs:
+        raise ValueError("program_memory must include VERB 16 NOUN 68")
+    return programs
+
+
+def expand_program_memory_records(payload: dict) -> list[dict]:
+    programs = payload.pop("program_memory", [])
+    if not programs:
+        return []
+
+    sample_id = str(uuid.uuid4())
+    capacity = payload.get("memory_pool_capacity_words")
+    shared_fields = (
+        "source",
+        "schema_version",
+        "player_id",
+        "game_id",
+        "session_id",
+        "attempt_id",
+        "connection_id",
+        "event_time",
+        "client_event_time",
+        "mission_get",
+        "sim_get_seconds",
+        "game_elapsed_s",
+        "scenario",
+        "incident_id",
+        "incident_state",
+        "incident_wait_seconds",
+        "requires_fabric_action",
+        "game_state",
+        "active_alarm_code",
+        "sequence",
+        "memory_overflow",
+        "memory_pool_capacity_words",
+        "operations_agent_detection_id",
+    )
+    shared = {
+        name: payload[name]
+        for name in shared_fields
+        if name in payload
+    }
+
+    records = []
+    for program in programs:
+        used_words = program["memory_used_words"]
+        utilization = (
+            (used_words / capacity) * 100
+            if capacity
+            else None
+        )
+        record = {
+            **shared,
+            "kind": "lander_program_memory",
+            "event_type": "program_memory_sample",
+            "memory_sample_id": sample_id,
+            "memory_program_id": program["program_id"],
+            "memory_program_name": program["program_name"],
+            "memory_program_verb": program["verb"],
+            "memory_program_noun": program["noun"],
+            "memory_program_used_words": used_words,
+            "memory_program_baseline_words": program[
+                "memory_baseline_words"
+            ],
+            "memory_program_growth_words_per_second": program[
+                "memory_growth_words_per_second"
+            ],
+            "memory_program_state": program["state"],
+        }
+        if utilization is not None:
+            record["memory_program_utilization_pct"] = utilization
+        records.append(record)
+    return records
+
+
 def normalize_lander_message(payload: dict, connection_id: str) -> dict:
     if not isinstance(payload, dict):
         raise ValueError("Message must be a JSON object")
@@ -354,6 +552,12 @@ def normalize_lander_message(payload: dict, connection_id: str) -> dict:
 
     player_id = _validated_uuid(payload, "player_id", required=True)
     attempt_id = _validated_uuid(payload, "attempt_id", required=True)
+    incident_id = _validated_uuid(payload, "incident_id", required=False)
+    operations_agent_detection_id = _validated_uuid(
+        payload,
+        "operations_agent_detection_id",
+        required=False,
+    )
     message_id = _validated_uuid(
         payload,
         "message_id",
@@ -362,7 +566,7 @@ def normalize_lander_message(payload: dict, connection_id: str) -> dict:
     normalized = {
         "kind": kind,
         "source": "apollo11_lander_game",
-        "schema_version": "1.1",
+        "schema_version": "1.5",
         "player_id": player_id,
         "game_id": attempt_id,
         "session_id": attempt_id,
@@ -372,6 +576,12 @@ def normalize_lander_message(payload: dict, connection_id: str) -> dict:
     }
     if message_id is not None:
         normalized["message_id"] = message_id
+    if incident_id is not None:
+        normalized["incident_id"] = incident_id
+    if operations_agent_detection_id is not None:
+        normalized["operations_agent_detection_id"] = (
+            operations_agent_detection_id
+        )
 
     for name, max_length in LANDER_STRING_LIMITS.items():
         value = payload.get(name)
@@ -421,6 +631,121 @@ def normalize_lander_message(payload: dict, connection_id: str) -> dict:
         if not isinstance(value, bool):
             raise ValueError(f"{name} must be a boolean")
         normalized[name] = value
+
+    scenario = normalized.setdefault("scenario", "standard_lander")
+    if scenario not in LANDER_SCENARIOS:
+        raise ValueError("scenario is invalid")
+    programs = _validated_program_memory(payload, scenario)
+    if programs:
+        normalized["program_memory"] = programs
+
+    incident_state = normalized.setdefault("incident_state", "none")
+    if incident_state not in LANDER_INCIDENT_STATES:
+        raise ValueError("incident_state is invalid")
+
+    normalized.setdefault("incident_wait_seconds", 0.0)
+    requires_fabric_action = normalized.setdefault(
+        "requires_fabric_action",
+        False,
+    )
+    if incident_state != "none" and scenario != "fabric_intervention":
+        raise ValueError("Only the Fabric intervention scenario can report incidents")
+    if incident_state != "none" and incident_id is None:
+        raise ValueError("incident_id is required once an incident starts")
+    if normalized.get("game_state") == "incident" and (
+        incident_state != "waiting" or not requires_fabric_action
+    ):
+        raise ValueError("Paused incident telemetry must require Fabric action")
+    if incident_state != "waiting" and requires_fabric_action:
+        raise ValueError("requires_fabric_action is only valid while waiting")
+
+    if scenario == "fabric_intervention" and "dsky_command_status" not in normalized:
+        if incident_state == "resolved":
+            normalized["dsky_command_status"] = "accepted"
+            normalized["entered_dsky_command"] = LANDER_REMEDIATION_COMMAND
+            normalized["radio_altimeter_monitor_enabled"] = False
+        else:
+            normalized["dsky_command_status"] = "armed"
+
+    dsky_command_status = normalized.setdefault("dsky_command_status", "not_required")
+    if dsky_command_status not in LANDER_DSKY_COMMAND_STATES:
+        raise ValueError("dsky_command_status is invalid")
+
+    radio_altimeter_monitor_enabled = normalized.setdefault(
+        "radio_altimeter_monitor_enabled",
+        True,
+    )
+    if scenario == "fabric_intervention":
+        provided_recommendation = normalized.get("recommended_dsky_command", "")
+        if provided_recommendation not in {"", LANDER_REMEDIATION_COMMAND}:
+            raise ValueError("recommended_dsky_command is invalid")
+
+        default_agent_state = "monitoring"
+        if incident_state == "resolved":
+            default_agent_state = "remediation_applied"
+        elif (
+            incident_state == "waiting"
+            and provided_recommendation == LANDER_REMEDIATION_COMMAND
+        ):
+            default_agent_state = "recommendation_ready"
+        operations_agent_state = normalized.setdefault(
+            "operations_agent_state",
+            default_agent_state,
+        )
+        if operations_agent_state not in LANDER_OPERATIONS_AGENT_STATES:
+            raise ValueError("operations_agent_state is invalid")
+        if operations_agent_state == "not_enabled":
+            raise ValueError(
+                "Fabric intervention telemetry must enable the Operations Agent"
+            )
+
+        recommendation_available = operations_agent_state in {
+            "recommendation_ready",
+            "remediation_applied",
+        }
+        normalized["recommended_dsky_command"] = (
+            LANDER_REMEDIATION_COMMAND if recommendation_available else ""
+        )
+    else:
+        normalized["recommended_dsky_command"] = ""
+        operations_agent_state = normalized.setdefault(
+            "operations_agent_state",
+            "not_enabled",
+        )
+        if operations_agent_state != "not_enabled":
+            raise ValueError(
+                "Standard lander telemetry cannot report Operations Agent activity"
+            )
+        if dsky_command_status != "not_required":
+            raise ValueError("Standard lander telemetry cannot report a DSKY command")
+
+    normalized.setdefault("memory_overflow", False)
+    if programs:
+        capacity = normalized.get("memory_pool_capacity_words")
+        if capacity is None:
+            raise ValueError(
+                "memory_pool_capacity_words is required with program_memory"
+            )
+        total_used_words = sum(
+            program["memory_used_words"]
+            for program in programs
+        )
+        if total_used_words > capacity:
+            raise ValueError(
+                "program_memory exceeds memory_pool_capacity_words"
+            )
+        if normalized["memory_overflow"] and total_used_words != capacity:
+            raise ValueError(
+                "memory_overflow requires program memory to equal capacity"
+            )
+    entered_dsky_command = normalized.setdefault("entered_dsky_command", "")
+    if dsky_command_status == "accepted" and (
+        entered_dsky_command != LANDER_REMEDIATION_COMMAND
+        or radio_altimeter_monitor_enabled
+    ):
+        raise ValueError("Accepted DSKY command telemetry is inconsistent")
+    if incident_state == "resolved" and dsky_command_status != "accepted":
+        raise ValueError("A resolved incident requires an accepted DSKY command")
 
     return normalized
 
@@ -536,8 +861,11 @@ async def create_app() -> web.Application:
     async def lander_javascript(_request):
         return web.FileResponse(LANDER_DIR / "app.js")
 
-    async def lander_background_audio(_request):
-        return web.FileResponse(AUDIO_DIR / "WhatAldrinSaw.mp3")
+    async def lander_descent_audio(_request):
+        return web.FileResponse(AUDIO_DIR / "descent.mp3")
+
+    async def lander_outcome_audio(_request):
+        return web.FileResponse(AUDIO_DIR / "landed.mp3")
 
     async def lander_session(request):
         if not _same_origin(request):
@@ -638,7 +966,12 @@ async def create_app() -> web.Application:
                         })
                         continue
 
+                    program_memory_records = expand_program_memory_records(
+                        payload,
+                    )
                     await lander_sink.publish(payload)
+                    for program_memory_record in program_memory_records:
+                        await lander_sink.publish(program_memory_record)
                     app["lander_messages_received"] += 1
                     if message_id is not None:
                         app["lander_seen_message_ids"][message_id] = time.monotonic()
@@ -717,9 +1050,12 @@ async def create_app() -> web.Application:
     app.router.add_get("/docs/io-signal-diagram.md", signal_diagram)
     app.router.add_get("/lander", lander_index)
     app.router.add_get("/lander/", lander_index)
+    app.router.add_get("/apollo-lander", lander_index)
+    app.router.add_get("/apollo-lander/", lander_index)
     app.router.add_get("/lander/style.css", lander_stylesheet)
     app.router.add_get("/lander/app.js", lander_javascript)
-    app.router.add_get("/audio/WhatAldrinSaw.mp3", lander_background_audio)
+    app.router.add_get("/audio/descent.mp3", lander_descent_audio)
+    app.router.add_get("/audio/landed.mp3", lander_outcome_audio)
     app.router.add_get("/lander/session", lander_session)
     app.router.add_get("/lander/ws", lander_websocket)
     app.router.add_get("/data/mission_timeline.json", mission_timeline)

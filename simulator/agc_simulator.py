@@ -16,7 +16,7 @@ This script has two jobs:
 1. Drive a live DSKY web UI over a WebSocket (ws://localhost:8765), so you
    can watch PROG/VERB/NOUN, R1/R2/R3 registers, and alarm lamps update in
    real time as the descent replays.
-2. Emit each simulated telemetry sample as a line of NDJSON to
+2. Emit each telemetry sample as a line of NDJSON to
    data/telemetry_stream.ndjson -- the same shape of event you would push
    into a Microsoft Fabric Eventstream (custom endpoint / Event Hub) for
    ingestion into an Eventhouse (KQL) table for the Fabric Operations Agent
@@ -50,7 +50,7 @@ STREAM_OUT_PATH = Path(os.environ.get(
 MAX_CORE_SETS = 7          # Luminary Executive pool: seven core sets
 RADAR_AUTO_JOB_RATE = 12.5 # extra spurious job requests/sec injected by CDU when radar in AUTO/SLEW
 NORMAL_JOB_RATE = 3.0      # baseline landing-program job churn per second
-TICK_HZ = 5                # simulated telemetry samples per second
+TICK_HZ = 5                # telemetry samples per second
 
 
 def get_to_seconds(get_str: str) -> float:

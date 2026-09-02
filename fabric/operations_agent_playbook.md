@@ -10,6 +10,7 @@ and https://learn.microsoft.com/en-us/fabric/real-time-intelligence/anomaly-dete
 
 ```
 agc_simulator.py --> NDJSON (data/telemetry_stream.ndjson)
+apollo-lander  --> WebSocket (simulator/web_app.py)
                   --> Fabric Eventstream (Custom App source, live inspection)
                   --> Eventhouse table AgcTelemetry (managed-identity streaming)
                   --> KQL anomaly detection (fabric/kql/anomaly_detection_queries.kql)
@@ -21,12 +22,17 @@ agc_simulator.py --> NDJSON (data/telemetry_stream.ndjson)
 ## 2. Monitored condition (the "goal")
 
 The Operations Agent is configured to watch the `AgcTelemetry` Eventhouse
-table for the pattern that actually caused the historical incident:
+table for either the historical replay pattern or the playable training
+scenario:
 
 - **Signal:** `core_sets_used >= max_core_sets - 1` (executive job table
   nearly exhausted) **while** `radar_auto_slew == true`.
 - **Confirmation:** an `event_type == "alarm"` row with `code in ("1202","1201")`
   follows within a few seconds.
+- **Playable exercise signal:** seven `lander_program_memory` rows share a
+  `memory_sample_id`. Derive total pool usage by summing
+  `memory_program_used_words`, then compare each program's allocation over
+  time. The program with the largest increase is the root-cause candidate.
 
 This mirrors Fabric's real anomaly-detection workflow: a KQL-based
 detection model (or `series_decompose_anomalies`) runs continuously against
@@ -39,21 +45,22 @@ detected anomaly into a notification + investigation + action.
    `Apollo11Eventhouse` Eventhouse → **Operations Agent**.
 2. Create a new agent, "AGC Executive Overflow Watch", scoped to the
    `AgcTelemetry` table.
-3. Set the trigger to the KQL query in section 3 of
-   `anomaly_detection_queries.kql` (core-sets-near-overflow + radar AUTO).
+3. Set the playable trigger to query 14 in
+   `anomaly_detection_queries.kql`, which derives pool utilization from
+   the seven program rows.
 4. Action 1 — **Notify**: post to a Teams channel ("Mission Control Ops")
    with the anomaly summary and a deep link to the KQL results.
 5. Action 2 — **Investigate**: invoke Copilot **Investigator insights** to
-   auto-correlate `radar_auto_slew`, `core_sets_used`, and the alarm code,
-   and produce a natural-language root-cause summary (see
-   `incident_investigation_transcript.md` for the expected output).
+   compare `memory_program_used_words` and
+   `memory_program_growth_words_per_second` by program, verb, and noun.
+   The allocation that diverges from the six stable programs identifies
+   the workload to stop.
 6. Action 3 — **Suggested remediation**: run a Fabric notebook (or Power
    Automate flow) that would, in the real mission, correspond to the
-   controller call: confirm the alarm is on the "acceptable/GO" list (per
-   Jack Garman's manually-compiled alarm reference and Steve Bales' call),
-   and — for a real operational system — recommend switching the radar out
-   of AUTO/SLEW to remove the root cause rather than just tolerating the
-   restarts.
+   controller action: when `V16 N68` is the only growing allocation,
+   recommend the runbook command that stops that monitor. After the
+   operator enters the command, verify that the `V16 N68` program state
+   changes to `stopped` and its allocation drops to zero.
 
 ## 4. Why an agent (not just a static alert) helps here
 

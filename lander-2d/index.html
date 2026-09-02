@@ -10,12 +10,12 @@
   <main class="wrap">
     <header class="page-header">
       <div>
-        <p class="eyebrow">APOLLO 11 · SEA OF TRANQUILITY</p>
-        <h1>PLAYABLE LUNAR LANDING <span>2D training simulator</span></h1>
+        <p id="page-eyebrow" class="eyebrow">APOLLO 11 · SEA OF TRANQUILITY</p>
+        <h1 id="page-title">PLAYABLE LUNAR LANDING <span>2D training simulator</span></h1>
       </div>
       <div class="objective">
-        <strong>LAND INSIDE THE GOLD PAD</strong>
-        <span>Vertical ≤ 5 m/s · Horizontal ≤ 3 m/s · Pitch ≤ 12°</span>
+        <strong id="objective-title">LAND INSIDE THE GOLD PAD</strong>
+        <span id="objective-copy">Vertical ≤ 5 m/s · Horizontal ≤ 3 m/s · Pitch ≤ 12°</span>
       </div>
     </header>
 
@@ -53,7 +53,7 @@
       </div>
 
       <div id="alarm-flash" class="alarm-flash hidden" role="alert">
-        <div class="alarm-label">PROGRAM ALARM</div>
+        <div id="alarm-label" class="alarm-label">PROGRAM ALARM</div>
         <div class="alarm-flash-code" id="alarm-flash-code">1202</div>
         <div class="alarm-flash-note" id="alarm-flash-note"></div>
       </div>
@@ -112,10 +112,20 @@
         <h2>AGC EXECUTIVE</h2>
         <div class="meter"><div id="core-fill" class="meter-fill"></div></div>
         <div class="meter-label"><span id="core-count">3</span> / <span id="core-max">7</span> CORE SETS</div>
-        <div class="hud-row"><span>RADAR AUTO/SLEW</span><b id="hud-radar" class="warning">ON</b></div>
+        <div id="memory-panel" class="incident-memory-panel hidden">
+          <div class="memory-heading">
+            <span>PROGRAM MEMORY POOL</span>
+            <b id="memory-percent">30.3%</b>
+          </div>
+          <div class="memory-meter"><div id="memory-fill" class="memory-fill"></div></div>
+          <div class="hud-row"><span>WORDS USED</span><b id="memory-words">620 / 2048</b></div>
+          <div class="hud-row"><span>ACTIVE PROGRAMS</span><b>7</b></div>
+          <div class="hud-row"><span>ANALYSIS STATE</span><b id="agent-hud-state">MONITORING</b></div>
+        </div>
+        <div class="hud-row"><span id="radar-label">RADAR AUTO/SLEW</span><b id="hud-radar" class="warning">ON</b></div>
         <div class="hud-row"><span>PROGRAM ALARM</span><b id="hud-alarm">—</b></div>
         <div class="hud-row"><span>RESTART</span><b id="hud-restart">ARMED</b></div>
-        <p class="hint">The historical 1202/1201 executive-overflow alarms occur on the real GET timeline. The AGC restarts while your landing continues.</p>
+        <p id="agc-hint" class="hint">The historical 1202/1201 executive-overflow alarms occur on the real GET timeline. The AGC restarts while your landing continues.</p>
       </article>
 
       <article class="hud-card">
@@ -151,12 +161,115 @@
     <footer>
       <a href="/">DSKY VIEW</a>
       <span>·</span>
+      <a id="scenario-link" href="/apollo-lander">FABRIC INCIDENT SCENARIO</a>
+      <span>·</span>
       <a href="/README.md">PROJECT README</a>
       <span>·</span>
       <span>Lunar gravity and arcade-tuned LM controls; mission alarms use Apollo 11 GET timestamps.</span>
     </footer>
   </main>
-  <audio id="background-audio" src="/audio/WhatAldrinSaw.mp3" loop preload="auto"></audio>
+
+  <section id="incident-modal" class="incident-modal hidden" role="dialog" aria-modal="true" aria-labelledby="incident-title">
+    <div class="incident-dialog">
+      <header class="incident-header">
+        <div>
+          <p class="incident-kicker">AUTOPILOT DISCONNECT · FLIGHT FROZEN</p>
+          <h2 id="incident-title">1202 EXECUTIVE OVERFLOW</h2>
+        </div>
+        <span class="incident-status">FABRIC ACTION REQUIRED</span>
+      </header>
+
+      <div class="incident-layout">
+        <section class="incident-dsky" aria-label="Apollo Guidance Computer DSKY alarm display">
+          <div class="incident-dsky-name">COMPUTER DISPLAY / KEYBOARD</div>
+          <div class="incident-dsky-instruments">
+            <div class="incident-lamps">
+              <span>UPLINK<br>ACTY</span>
+              <span>TEMP</span>
+              <span>NO ATT</span>
+              <span>GIMBAL<br>LOCK</span>
+              <span>STBY</span>
+              <span class="lit danger">PROG</span>
+              <span>KEY REL</span>
+              <span class="lit restart">RESTART</span>
+              <span id="incident-lamp-oprerr">OPR ERR</span>
+              <span>TRACKER</span>
+            </div>
+            <div class="incident-display">
+              <div class="incident-codes">
+                <span>PROG <b id="incident-prog">64</b></span>
+                <span>VERB <b id="incident-verb">05</b></span>
+                <span>NOUN <b id="incident-noun">09</b></span>
+              </div>
+              <div class="incident-registers">
+                <b id="incident-r1">+01202</b>
+                <b id="incident-r2">+00007</b>
+                <b id="incident-r3">+00001</b>
+              </div>
+            </div>
+          </div>
+          <div class="incident-keypad" aria-label="Interactive DSKY keypad">
+            <button type="button" data-dsky-key="VERB">VERB</button>
+            <button type="button" data-dsky-key="7">7</button>
+            <button type="button" data-dsky-key="8">8</button>
+            <button type="button" data-dsky-key="9">9</button>
+            <button type="button" data-dsky-key="NOUN">NOUN</button>
+            <button type="button" data-dsky-key="+">+</button>
+            <button type="button" data-dsky-key="4">4</button>
+            <button type="button" data-dsky-key="5">5</button>
+            <button type="button" data-dsky-key="6">6</button>
+            <button type="button" data-dsky-key="ENTR">ENTR</button>
+            <button type="button" data-dsky-key="-">−</button>
+            <button type="button" data-dsky-key="1">1</button>
+            <button type="button" data-dsky-key="2">2</button>
+            <button type="button" data-dsky-key="3">3</button>
+            <button type="button" data-dsky-key="RSET">RSET</button>
+            <button type="button" data-dsky-key="CLR">CLR</button>
+            <button type="button" data-dsky-key="0">0</button>
+            <button type="button" data-dsky-key="PRO">PRO</button>
+            <button type="button" data-dsky-key="KEY REL">KEY REL</button>
+          </div>
+          <p id="incident-command-status" class="incident-command-status">WAITING FOR RUNBOOK COMMAND</p>
+        </section>
+
+        <section class="incident-action">
+          <p class="incident-copy">
+            Eagle, the mission clock, and all flight controls are paused. The
+            AGC reported no available core sets while one program allocation
+            continued growing.
+          </p>
+          <div class="incident-id-grid">
+            <span>PLAYER ID</span><b id="incident-player-id">—</b>
+            <span>GAME ID</span><b id="incident-game-id">—</b>
+            <span>INCIDENT ID</span>
+            <button id="incident-id-button" class="incident-id-button" type="button" title="Copy full Incident ID">
+              <b id="incident-id">—</b>
+            </button>
+          </div>
+          <div class="operations-agent-panel">
+            <span>FABRIC INCIDENT ANALYSIS</span>
+            <strong id="operations-agent-state">INVESTIGATING MEMORY OVERFLOW</strong>
+            <p id="operations-agent-action">Comparing memory growth across seven active programs.</p>
+          </div>
+          <ol class="incident-steps">
+            <li>Open Microsoft Fabric in another tab.</li>
+            <li>Find this Incident ID in <code>AgcTelemetry</code>.</li>
+            <li>Use Fabric to identify the growing program, then enter the runbook command on the DSKY.</li>
+          </ol>
+          <div class="incident-actions">
+            <a class="fabric-button" href="https://app.fabric.microsoft.com/" target="_blank" rel="noopener">OPEN MICROSOFT FABRIC</a>
+          </div>
+          <p class="incident-placeholder">
+            Flight resumes automatically only after the DSKY accepts the
+            complete remediation command.
+          </p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <audio id="background-audio" src="/audio/descent.mp3" loop preload="auto"></audio>
+  <audio id="outcome-audio" src="/audio/landed.mp3" preload="auto"></audio>
   <script src="/lander/app.js"></script>
 </body>
 </html>

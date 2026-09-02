@@ -242,6 +242,12 @@ h1 span {
 .status-badge.flying { border-color: var(--blue); color: var(--blue); }
 .status-badge.landed { border-color: var(--green); color: var(--green); }
 .status-badge.crashed { border-color: var(--red); color: var(--red); }
+.status-badge.incident {
+  border-color: var(--red);
+  color: #fff;
+  background: rgba(139, 10, 19, 0.82);
+  box-shadow: 0 0 18px rgba(255, 38, 49, 0.62);
+}
 
 .game-overlay {
   position: absolute;
@@ -338,6 +344,13 @@ h1 span {
   display: none;
 }
 
+.alarm-flash.incident-persistent {
+  background:
+    radial-gradient(circle, rgba(255, 15, 28, 0.05), rgba(132, 0, 7, 0.48)),
+    rgba(132, 0, 7, 0.32);
+  animation: incident-red-pulse 0.42s ease-in-out infinite;
+}
+
 .alarm-label {
   color: #ffd6d7;
   font: 800 12px/1 "Consolas", monospace;
@@ -363,6 +376,390 @@ h1 span {
   0%,
   100% { box-shadow: inset 0 0 20px rgba(255, 40, 50, 0.12); }
   50% { box-shadow: inset 0 0 110px rgba(255, 20, 30, 0.44); }
+}
+
+@keyframes incident-red-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 70px rgba(255, 30, 39, 0.32),
+      0 0 0 rgba(255, 30, 39, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 190px rgba(255, 13, 27, 0.72),
+      0 0 42px rgba(255, 30, 39, 0.6);
+  }
+}
+
+/* Fabric intervention modal */
+.incident-modal {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(134, 0, 10, 0.32), transparent 38rem),
+    rgba(1, 3, 8, 0.9);
+  backdrop-filter: blur(8px);
+}
+
+.incident-modal.hidden {
+  display: none;
+}
+
+.incident-dialog {
+  width: min(1040px, 100%);
+  border: 1px solid rgba(255, 90, 96, 0.78);
+  border-radius: 10px;
+  background: #090e17;
+  box-shadow:
+    0 0 0 1px rgba(255, 45, 54, 0.2),
+    0 30px 100px rgba(0, 0, 0, 0.72),
+    0 0 48px rgba(180, 0, 12, 0.24);
+  overflow: hidden;
+}
+
+.incident-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 20px;
+  border-bottom: 1px solid #61252b;
+  background: linear-gradient(90deg, rgba(126, 9, 18, 0.62), rgba(20, 15, 24, 0.94));
+}
+
+.incident-kicker {
+  margin: 0 0 5px;
+  color: #ff9a9e;
+  font: 800 10px/1 "Consolas", monospace;
+  letter-spacing: 1.5px;
+}
+
+.incident-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(22px, 4vw, 34px);
+  letter-spacing: 1px;
+}
+
+.incident-status {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #ff5e65;
+  border-radius: 4px;
+  color: #ffd9da;
+  background: rgba(135, 8, 17, 0.58);
+  font: 800 10px/1 "Consolas", monospace;
+  letter-spacing: 1px;
+  animation: alarm-pulse 0.72s ease-in-out infinite;
+}
+
+.incident-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.92fr) minmax(340px, 1.08fr);
+  gap: 24px;
+  padding: 24px;
+}
+
+.incident-dsky {
+  padding: 18px;
+  border: 1px solid #777c79;
+  border-radius: 12px;
+  color: #171b19;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent 24%),
+    linear-gradient(145deg, #d0d3cf, #a4a9a5 70%, #858b87);
+  box-shadow:
+    inset 2px 2px 2px rgba(255, 255, 255, 0.62),
+    inset -5px -5px 8px rgba(42, 48, 44, 0.32),
+    0 15px 30px rgba(0, 0, 0, 0.46);
+}
+
+.incident-dsky-name {
+  margin-bottom: 10px;
+  color: #353b38;
+  font: 800 9px/1 "Consolas", monospace;
+  letter-spacing: 1.2px;
+  text-align: center;
+}
+
+.incident-dsky-instruments {
+  display: grid;
+  grid-template-columns: 0.75fr 1.25fr;
+  gap: 10px;
+}
+
+.incident-lamps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 5px;
+  border: 2px solid #656b67;
+  background: #7d837f;
+}
+
+.incident-lamps span {
+  display: grid;
+  min-height: 31px;
+  place-items: center;
+  border: 1px solid #aaa;
+  background: #ecece5;
+  color: #1a1d1b;
+  font: 800 7px/0.95 Arial, sans-serif;
+  text-align: center;
+}
+
+.incident-lamps .lit.danger {
+  color: #fff3f3;
+  border-color: #ff5d63;
+  background: #c91d26;
+  box-shadow: 0 0 13px #ff3943;
+}
+
+.incident-lamps .lit.restart {
+  color: #fff6dc;
+  border-color: #ffca53;
+  background: #a66e00;
+  box-shadow: 0 0 11px rgba(255, 193, 55, 0.86);
+}
+
+.incident-lamps .lit.opr-error {
+  color: #fff3f3;
+  border-color: #ff5d63;
+  background: #a70f18;
+  box-shadow: 0 0 13px #ff3943;
+}
+
+.incident-display {
+  padding: 10px;
+  border: 3px solid #555f58;
+  border-radius: 4px;
+  background: #0d1710;
+  box-shadow: inset 0 0 18px #000;
+}
+
+.incident-codes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.incident-codes span {
+  color: #8c9b8f;
+  font: 700 7px/1 "Consolas", monospace;
+  text-align: center;
+}
+
+.incident-codes b,
+.incident-registers b {
+  display: block;
+  margin-top: 3px;
+  color: #aaff94;
+  font-family: "Consolas", monospace;
+  text-shadow: 0 0 8px rgba(121, 255, 93, 0.76);
+}
+
+.incident-codes b {
+  font-size: 25px;
+}
+
+.incident-registers {
+  display: grid;
+  gap: 5px;
+}
+
+.incident-registers b {
+  font-size: 25px;
+  letter-spacing: 3px;
+  text-align: right;
+}
+
+.incident-keypad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.incident-keypad button {
+  display: grid;
+  min-height: 31px;
+  place-items: center;
+  border: 1px solid #080b0e;
+  border-radius: 3px;
+  color: #e7edf3;
+  background: linear-gradient(#242c35, #10151b);
+  font: 700 8px/1 "Consolas", monospace;
+  text-align: center;
+  cursor: pointer;
+}
+
+.incident-keypad button:hover,
+.incident-keypad button:focus-visible {
+  border-color: #74a9dd;
+  outline: none;
+}
+
+.incident-keypad button:active,
+.incident-keypad button.pressed {
+  color: #fff;
+  background: linear-gradient(#42617e, #1d2e40);
+  transform: translateY(1px);
+}
+
+.incident-keypad button:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+
+.incident-command-status {
+  min-height: 29px;
+  margin: 10px 0 0;
+  padding: 8px;
+  border: 1px solid #545d58;
+  border-radius: 3px;
+  color: #202521;
+  background: #c7cac6;
+  font: 800 9px/1.35 "Consolas", monospace;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.incident-command-status.error {
+  color: #fff;
+  border-color: #ff686e;
+  background: #a9101a;
+}
+
+.incident-command-status.accepted {
+  color: #071208;
+  border-color: #6eff8c;
+  background: #6fe98a;
+  box-shadow: 0 0 13px rgba(86, 230, 122, 0.5);
+}
+
+.incident-action {
+  min-width: 0;
+}
+
+.incident-copy {
+  margin: 0 0 15px;
+  color: #b7c4d6;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.incident-id-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px 15px;
+  padding: 12px;
+  border: 1px solid #293a55;
+  border-radius: 6px;
+  background: #080d16;
+}
+
+.incident-id-grid > span {
+  color: #7587a2;
+  font: 700 9px/1.5 "Consolas", monospace;
+}
+
+.incident-id-grid b {
+  min-width: 0;
+  color: var(--blue);
+  font: 800 11px/1.35 "Consolas", monospace;
+  overflow-wrap: anywhere;
+}
+
+.incident-id-button {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: copy;
+}
+
+.operations-agent-panel {
+  margin-top: 13px;
+  padding: 12px;
+  border: 1px solid #315681;
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(32, 96, 158, 0.2), transparent),
+    #080f19;
+}
+
+.operations-agent-panel > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #7198c8;
+  font: 700 8px/1 "Consolas", monospace;
+  letter-spacing: 1px;
+}
+
+.operations-agent-panel strong {
+  display: block;
+  color: var(--blue);
+  font: 800 13px/1.3 "Consolas", monospace;
+}
+
+.operations-agent-panel strong.ready {
+  color: var(--green);
+}
+
+.operations-agent-panel p {
+  margin: 7px 0 0;
+  color: #9bacc2;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.incident-steps {
+  margin: 17px 0;
+  padding-left: 24px;
+  color: #aab8cb;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.incident-steps code {
+  color: #89c4ff;
+}
+
+.incident-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+}
+
+.fabric-button {
+  display: block;
+  padding: 11px 14px;
+  border-radius: 5px;
+  font: 800 11px/1.2 "Consolas", monospace;
+  letter-spacing: 0.7px;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.fabric-button {
+  border: 1px solid #5d9ee8;
+  color: #ddecff;
+  background: linear-gradient(#1d528e, #12335a);
+}
+
+.incident-placeholder {
+  margin: 10px 0 0;
+  color: #677892;
+  font: 9px/1.4 "Consolas", monospace;
 }
 
 /* Controls */
@@ -437,6 +834,50 @@ h1 span {
   align-self: start;
   color: #74849c;
   font: 9px/1 "Consolas", monospace;
+}
+
+.incident-memory-panel {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #293a55;
+}
+
+.incident-memory-panel.hidden {
+  display: none;
+}
+
+.memory-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font: 700 9px/1.2 "Consolas", monospace;
+}
+
+.memory-heading b {
+  color: var(--green);
+}
+
+.memory-meter {
+  height: 8px;
+  margin: 6px 0 5px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #1d2a3c;
+}
+
+.memory-fill {
+  width: 30.3%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--amber) 72%, var(--red));
+  transition: width 0.12s linear;
+}
+
+.memory-fill.overflow {
+  background: var(--red);
+  box-shadow: 0 0 13px rgba(255, 65, 70, 0.72);
+  animation: alarm-pulse 0.52s ease-in-out infinite;
 }
 
 .restart {
@@ -659,6 +1100,10 @@ footer a:hover {
   .hud-card:first-child {
     grid-column: 1 / -1;
   }
+
+  .incident-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 650px) {
@@ -721,5 +1166,28 @@ footer a:hover {
 
   .stage-status {
     font-size: 9px;
+  }
+
+  .incident-modal {
+    padding: 8px;
+  }
+
+  .incident-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .incident-layout {
+    gap: 15px;
+    padding: 14px;
+  }
+
+  .incident-dsky {
+    padding: 11px;
+  }
+
+  .incident-codes b,
+  .incident-registers b {
+    font-size: 19px;
   }
 }

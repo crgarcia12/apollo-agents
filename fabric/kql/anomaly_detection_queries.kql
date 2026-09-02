@@ -100,3 +100,111 @@ AgcTelemetry
           lander_horizontal_speed_mps, lander_rotation_deg,
           lander_throttle_pct, lander_fuel_pct
 | order by event_time asc
+
+// 11) Fabric interventions that are currently blocking a flight. The
+//     arg_max keeps only the newest state for each incident.
+AgcTelemetry
+| where scenario == "fabric_intervention" and isnotempty(incident_id)
+| summarize arg_max(event_time, *) by incident_id
+| where incident_state == "waiting" and requires_fabric_action == true
+| project event_time, player_id, game_id, incident_id, code,
+          incident_wait_seconds, operations_agent_state,
+          operations_agent_action, recommended_dsky_command,
+          dsky_command_status, mission_get, lander_altitude_m,
+          lander_vertical_speed_mps, lander_horizontal_speed_mps
+| order by event_time desc
+
+// 12) Full lifecycle of one intervention, including the frozen-flight
+//     heartbeats and the eventual resolution event.
+let selected_incident_id = "00000000-0000-4000-8000-000000000000";
+AgcTelemetry
+| where incident_id == selected_incident_id
+| project event_time, event_type, incident_state, requires_fabric_action,
+          incident_wait_seconds, game_state, code,
+          recommended_dsky_command, entered_dsky_command,
+          dsky_command_status, radio_altimeter_monitor_enabled,
+          radar_auto_slew, note
+| order by event_time asc
+
+// 13) Compare all seven program allocations over time. Six lines remain
+//     flat while one allocation grows toward the pool limit.
+let memory_game_id = "00000000-0000-4000-8000-000000000000";
+AgcTelemetry
+| where record_kind == "lander_program_memory"
+| where game_id == memory_game_id
+| project event_time, memory_program_name,
+          memory_words = memory_program_used_words
+| order by event_time asc
+| render timechart
+
+// 14) Derive total pool consumption from the seven program rows instead
+//     of trusting a precomputed aggregate from the game.
+AgcTelemetry
+| where record_kind == "lander_program_memory"
+| summarize event_time = max(event_time),
+            total_memory_words = sum(memory_program_used_words),
+            capacity_words = max(memory_pool_capacity_words)
+    by player_id, game_id, incident_id, memory_sample_id
+| extend memory_utilization_pct =
+    100.0 * todouble(total_memory_words) / todouble(capacity_words)
+| order by event_time asc
+| render timechart
+
+// 15) Deduce the responsible program by ranking allocation growth. The
+//     agent should reach this conclusion from the data, not from a field
+//     that declares the offender.
+let diagnosis_game_id = "00000000-0000-4000-8000-000000000000";
+AgcTelemetry
+| where record_kind == "lander_program_memory"
+| where game_id == diagnosis_game_id
+| summarize baseline_words = min(memory_program_used_words),
+            peak_words = max(memory_program_used_words),
+            peak_growth_words_per_second =
+                max(memory_program_growth_words_per_second)
+    by memory_program_id, memory_program_name,
+       memory_program_verb, memory_program_noun
+| extend allocation_increase_words = peak_words - baseline_words
+| order by allocation_increase_words desc
+
+// 16) Latest seven-program snapshot for the newest landing attempt.
+let latest_memory_sample_id = toscalar(
+    AgcTelemetry
+    | where record_kind == "lander_program_memory"
+    | top 1 by event_time desc
+    | project memory_sample_id
+);
+AgcTelemetry
+| where memory_sample_id == latest_memory_sample_id
+| project event_time, player_id, game_id, incident_id,
+          memory_program_id, memory_program_name,
+          memory_program_verb, memory_program_noun,
+          memory_program_used_words, memory_program_baseline_words,
+          memory_program_growth_words_per_second, memory_program_state
+| order by memory_program_used_words desc
+
+// 17) Recommendation and remediation lifecycle, including the V16 N68
+//     allocation identified from the program-level telemetry.
+let agent_incident_id = "00000000-0000-4000-8000-000000000000";
+AgcTelemetry
+| where incident_id == agent_incident_id
+| where event_type in (
+        "operations_agent_investigation_started",
+        "operations_agent_recommendation",
+        "dsky_command_rejected",
+        "dsky_command_accepted",
+        "fabric_intervention_resolved",
+        "incident_waiting"
+    )
+    or (
+        record_kind == "lander_program_memory"
+        and memory_program_verb == 16
+        and memory_program_noun == 68
+    )
+| project event_time, event_type, operations_agent_state,
+          operations_agent_action, operations_agent_confidence_pct,
+          memory_program_name, memory_program_verb, memory_program_noun,
+          memory_program_used_words,
+          memory_program_growth_words_per_second, memory_program_state,
+          memory_overflow, recommended_dsky_command,
+          entered_dsky_command, dsky_command_status
+| order by event_time asc
