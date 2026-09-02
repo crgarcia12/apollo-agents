@@ -38,6 +38,8 @@ from pathlib import Path
 
 import websockets
 
+import flight_profile
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 TIMELINE_PATH = DATA_DIR / "mission_timeline.json"
 STREAM_OUT_PATH = Path(os.environ.get(
@@ -193,6 +195,7 @@ class Simulator:
                 print(f"[{e['get']}] {e['type'].upper():8s} {e.get('note','')}")
 
             self.tick_core_sets(dt_wall * self.speed)
+            flight = flight_profile.sample(t)
 
             event_time = datetime.now(timezone.utc).isoformat()
             telemetry = {
@@ -217,6 +220,10 @@ class Simulator:
                 "core_sets_used": self.state.core_sets_used,
                 "max_core_sets": MAX_CORE_SETS,
                 "radar_auto_slew": self.radar_auto,
+                "lander_altitude_m": round(flight.altitude_m, 1),
+                "lander_downrange_progress": round(flight.downrange_progress, 4),
+                "lander_vertical_speed_mps": round(flight.vertical_speed_mps, 1),
+                "lander_horizontal_speed_mps": round(flight.horizontal_speed_mps, 1),
                 "events": stream_lines,
             }
 
@@ -238,6 +245,10 @@ class Simulator:
                     "core_sets_used": self.state.core_sets_used,
                     "max_core_sets": MAX_CORE_SETS,
                     "radar_auto_slew": self.radar_auto,
+                    "lander_altitude_m": round(flight.altitude_m, 1),
+                    "lander_downrange_progress": round(flight.downrange_progress, 4),
+                    "lander_vertical_speed_mps": round(flight.vertical_speed_mps, 1),
+                    "lander_horizontal_speed_mps": round(flight.horizontal_speed_mps, 1),
                 })
 
             self.latest_payload = telemetry

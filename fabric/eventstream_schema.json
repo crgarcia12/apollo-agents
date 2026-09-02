@@ -1,21 +1,32 @@
 {
-  "description": "Live schema used by the Azure-hosted simulator to publish AGC telemetry and mission events to the Apollo11Telemetry Eventstream and the Apollo11Ops.AgcTelemetry table.",
+  "description": "Live schema used by the Azure-hosted simulator to publish AGC replay telemetry plus player-controlled lunar-landing physics, controls, alarms, and outcomes to the Apollo11PlayableTelemetry Eventstream and directly to the Apollo11Eventhouse.AgcTelemetry table.",
   "eventstream_source": {
     "type": "CustomEndpoint",
     "name": "ApolloTelemetrySource",
     "notes": "The Azure Container App publishes directly with azure-eventhub. Its Event Hub-compatible connection string is stored only as a Container App secret."
   },
-  "destination": {
+  "eventhouse_destination": {
     "type": "Eventhouse",
-    "database": "Apollo11Ops",
-    "table": "AgcTelemetry"
+    "database": "Apollo11Eventhouse",
+    "table": "AgcTelemetry",
+    "delivery": "Managed-identity streaming ingestion from simulator/web_app.py"
   },
   "columns": [
     { "name": "event_time", "type": "datetime", "source_field": "event_time" },
+    { "name": "client_event_time", "type": "datetime", "source_field": "client_event_time", "description": "Browser timestamp for playable lander messages" },
     { "name": "mission_get", "type": "string", "source_field": "mission_get", "description": "Ground Elapsed Time HH:MM:SS" },
     { "name": "sim_get_seconds", "type": "real", "source_field": "sim_get_seconds" },
-    { "name": "event_type", "type": "string", "source_field": "event_type", "description": "program | alarm | restart | note | event | telemetry_sample" },
-    { "name": "record_kind", "type": "string", "source_field": "kind", "description": "telemetry | mission_event" },
+    { "name": "event_type", "type": "string", "source_field": "event_type", "description": "Mission, alarm, game telemetry, control, touchdown, or crash event" },
+    { "name": "record_kind", "type": "string", "source_field": "kind", "description": "telemetry | mission_event | lander_game_telemetry | lander_game_event" },
+    { "name": "source", "type": "string", "source_field": "source" },
+    { "name": "schema_version", "type": "string", "source_field": "schema_version" },
+    { "name": "player_id", "type": "string", "source_field": "player_id", "description": "Anonymous UUID persisted in this browser profile so multiple attempts can be grouped by player/device" },
+    { "name": "game_id", "type": "string", "source_field": "game_id", "description": "UUID for one playable landing attempt; equal to attempt_id" },
+    { "name": "session_id", "type": "string", "source_field": "session_id", "description": "Landing attempt ID retained for compatibility with session-based queries" },
+    { "name": "attempt_id", "type": "string", "source_field": "attempt_id", "description": "Client-generated landing attempt ID that survives transport reconnects" },
+    { "name": "connection_id", "type": "string", "source_field": "connection_id", "description": "Server-generated WebSocket connection ID" },
+    { "name": "message_id", "type": "string", "source_field": "message_id", "description": "Idempotency ID for acknowledged one-shot game events" },
+    { "name": "sequence", "type": "long", "source_field": "sequence" },
     { "name": "program", "type": "string", "source_field": "program", "description": "Active AGC program, e.g. P63/P64/P66" },
     { "name": "verb", "type": "int", "source_field": "verb" },
     { "name": "noun", "type": "int", "source_field": "noun" },
@@ -31,6 +42,22 @@
     { "name": "active_alarm_code", "type": "string", "source_field": "active_alarm_code" },
     { "name": "core_sets_used", "type": "int", "source_field": "core_sets_used", "description": "Executive job-table (core set) utilization, 0-8" },
     { "name": "max_core_sets", "type": "int", "source_field": "max_core_sets" },
-    { "name": "radar_auto_slew", "type": "bool", "source_field": "radar_auto_slew", "description": "True when the rendezvous radar is in AUTO/SLEW, injecting spurious jobs" }
+    { "name": "radar_auto_slew", "type": "bool", "source_field": "radar_auto_slew", "description": "True when the rendezvous radar is in AUTO/SLEW, injecting spurious jobs" },
+    { "name": "game_elapsed_s", "type": "real", "source_field": "game_elapsed_s" },
+    { "name": "game_state", "type": "string", "source_field": "game_state", "description": "ready | flying | landed | crashed" },
+    { "name": "lander_x_m", "type": "real", "source_field": "lander_x_m", "description": "Horizontal position relative to the landing pad center" },
+    { "name": "lander_altitude_m", "type": "real", "source_field": "lander_altitude_m", "description": "Altitude of the landing legs above local terrain" },
+    { "name": "lander_vertical_speed_mps", "type": "real", "source_field": "lander_vertical_speed_mps", "description": "Positive values indicate descent" },
+    { "name": "lander_horizontal_speed_mps", "type": "real", "source_field": "lander_horizontal_speed_mps" },
+    { "name": "lander_rotation_deg", "type": "real", "source_field": "lander_rotation_deg" },
+    { "name": "lander_throttle_pct", "type": "real", "source_field": "lander_throttle_pct" },
+    { "name": "lander_fuel_pct", "type": "real", "source_field": "lander_fuel_pct" },
+    { "name": "landing_target_distance_m", "type": "real", "source_field": "landing_target_distance_m" },
+    { "name": "control_left", "type": "bool", "source_field": "control_left" },
+    { "name": "control_right", "type": "bool", "source_field": "control_right" },
+    { "name": "control_thrust", "type": "bool", "source_field": "control_thrust" },
+    { "name": "touchdown_vertical_speed_mps", "type": "real", "source_field": "touchdown_vertical_speed_mps" },
+    { "name": "touchdown_horizontal_speed_mps", "type": "real", "source_field": "touchdown_horizontal_speed_mps" },
+    { "name": "touchdown_angle_deg", "type": "real", "source_field": "touchdown_angle_deg" }
   ]
 }

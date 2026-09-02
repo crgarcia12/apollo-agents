@@ -10,8 +10,8 @@ and https://learn.microsoft.com/en-us/fabric/real-time-intelligence/anomaly-dete
 
 ```
 agc_simulator.py --> NDJSON (data/telemetry_stream.ndjson)
-                  --> Fabric Eventstream (Custom App source)
-                  --> Eventhouse table AgcTelemetry (KQL database)
+                  --> Fabric Eventstream (Custom App source, live inspection)
+                  --> Eventhouse table AgcTelemetry (managed-identity streaming)
                   --> KQL anomaly detection (fabric/kql/anomaly_detection_queries.kql)
                   --> Operations Agent trigger
                   --> Teams notification + Copilot "Investigator insights"
@@ -36,7 +36,7 @@ detected anomaly into a notification + investigation + action.
 ## 3. Agent configuration (conceptual — Fabric portal steps)
 
 1. In the Fabric workspace, open **Real-Time Intelligence** → the
-   `Apollo11Ops` Eventhouse → **Operations Agent**.
+   `Apollo11Eventhouse` Eventhouse → **Operations Agent**.
 2. Create a new agent, "AGC Executive Overflow Watch", scoped to the
    `AgcTelemetry` table.
 3. Set the trigger to the KQL query in section 3 of

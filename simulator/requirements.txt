@@ -1,3 +1,5 @@
 websockets>=12.0
 azure-eventhub>=5.11.0
+azure-kusto-data>=5.0.0
+azure-kusto-ingest>=5.0.0
 aiohttp>=3.10.0

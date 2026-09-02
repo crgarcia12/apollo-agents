@@ -47,3 +47,56 @@ alarms
 | join kind=inner (radar_windows) on $left.alarm_time == $right.radar_time
     // (in production, use a fuzzy time-window join, e.g. `where radar_time between (alarm_time - 30s .. alarm_time)`)
 | summarize radar_auto_hits = count() by code
+
+// 6) Live player-controlled landing trajectory. One line per game session
+//    makes altitude, descent rate, and horizontal speed visible together.
+AgcTelemetry
+| where record_kind == "lander_game_telemetry"
+| project event_time, player_id, game_id, game_elapsed_s,
+          altitude = lander_altitude_m,
+          descent_rate = lander_vertical_speed_mps,
+          horizontal_speed = lander_horizontal_speed_mps
+| order by event_time asc
+| render timechart
+
+// 7) Unsafe-landing early warning for the Operations Agent. Alert when the
+//    player is below 75 m and either descent speed, lateral speed, or pitch
+//    is outside the safe touchdown envelope.
+AgcTelemetry
+| where record_kind == "lander_game_telemetry" and game_state == "flying"
+| where lander_altitude_m < 75
+| where lander_vertical_speed_mps > 5
+    or abs(lander_horizontal_speed_mps) > 3
+    or abs(lander_rotation_deg) > 12
+| project event_time, player_id, game_id, mission_get, lander_altitude_m,
+          lander_vertical_speed_mps, lander_horizontal_speed_mps,
+          lander_rotation_deg, lander_fuel_pct
+
+// 8) Landing outcomes and touchdown quality by playable session.
+AgcTelemetry
+| where record_kind == "lander_game_event"
+| where event_type in ("touchdown", "crash")
+| project event_time, player_id, game_id, mission_get, outcome = game_state,
+          touchdown_vertical_speed_mps, touchdown_horizontal_speed_mps,
+          touchdown_angle_deg, lander_fuel_pct, note
+| order by event_time desc
+
+// 9) All games from one browser/player. Copy the full Player ID from the
+//    Fabric card in the game and paste it below.
+let selected_player_id = "00000000-0000-4000-8000-000000000000";
+AgcTelemetry
+| where player_id == selected_player_id
+| project event_time, player_id, game_id, event_type, game_state,
+          mission_get, lander_altitude_m, lander_vertical_speed_mps,
+          lander_horizontal_speed_mps, lander_fuel_pct
+| order by event_time desc
+
+// 10) One exact landing attempt. Copy the full Game ID from the game HUD.
+let selected_game_id = "00000000-0000-4000-8000-000000000000";
+AgcTelemetry
+| where game_id == selected_game_id
+| project event_time, event_type, game_state, mission_get,
+          lander_altitude_m, lander_vertical_speed_mps,
+          lander_horizontal_speed_mps, lander_rotation_deg,
+          lander_throttle_pct, lander_fuel_pct
+| order by event_time asc

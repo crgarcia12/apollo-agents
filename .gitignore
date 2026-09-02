@@ -1,3 +1,4 @@
 data/telemetry_stream.ndjson
+data/lander_game_stream.ndjson
 __pycache__/
 *.pyc

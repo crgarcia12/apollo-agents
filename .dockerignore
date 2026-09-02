@@ -3,4 +3,5 @@
 __pycache__
 *.pyc
 data/telemetry_stream.ndjson
+data/lander_game_stream.ndjson
 .env

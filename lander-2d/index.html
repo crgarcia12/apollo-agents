@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Apollo 11 — Playable Lunar Landing Simulator</title>
+<link rel="stylesheet" href="/lander/style.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">APOLLO 11 · SEA OF TRANQUILITY</p>
+        <h1>PLAYABLE LUNAR LANDING <span>2D training simulator</span></h1>
+      </div>
+      <div class="objective">
+        <strong>LAND INSIDE THE GOLD PAD</strong>
+        <span>Vertical ≤ 5 m/s · Horizontal ≤ 3 m/s · Pitch ≤ 12°</span>
+      </div>
+    </header>
+
+    <section class="timeline" aria-label="Apollo 11 approach timeline">
+      <div class="timeline-heading">
+        <span>MISSION TIMELINE</span>
+        <span id="game-phase">P64 · APPROACH</span>
+      </div>
+      <div class="timeline-track">
+        <div id="timeline-fill" class="timeline-fill"></div>
+        <div id="timeline-needle" class="timeline-needle"></div>
+        <div id="timeline-markers" class="timeline-markers"></div>
+      </div>
+      <div class="timeline-labels">
+        <span id="get-start">102:42:00</span>
+        <span id="get-clock" class="get-clock">102:42:00</span>
+        <span id="get-end">102:45:57 · PLANNED LANDING</span>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="Playable two-dimensional lunar landing scene">
+      <canvas id="scene" width="1100" height="590"></canvas>
+
+      <div id="game-overlay" class="game-overlay">
+        <div class="overlay-panel">
+          <p id="overlay-kicker" class="overlay-kicker">LUNAR MODULE EAGLE</p>
+          <h2 id="overlay-title">TAKE MANUAL CONTROL</h2>
+          <p id="overlay-copy">
+            Pulse the descent engine to slow your fall. Let Eagle drift toward the
+            illuminated pad, then tilt left to brake before touchdown.
+          </p>
+          <button id="start-button" class="primary-button" type="button">BEGIN LANDING</button>
+          <p class="overlay-hint">Keyboard: A/D or ←/→ to rotate · W/↑/Space to thrust · R to restart</p>
+        </div>
+      </div>
+
+      <div id="alarm-flash" class="alarm-flash hidden" role="alert">
+        <div class="alarm-label">PROGRAM ALARM</div>
+        <div class="alarm-flash-code" id="alarm-flash-code">1202</div>
+        <div class="alarm-flash-note" id="alarm-flash-note"></div>
+      </div>
+
+      <div class="stage-status">
+        <span id="game-state-badge" class="status-badge">READY</span>
+        <span id="target-bearing">TARGET 420 m →</span>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Lander controls">
+      <button class="control-button rotate" data-control="left" type="button" aria-label="Rotate left">
+        <span class="control-icon">↶</span>
+        <span>ROTATE LEFT</span>
+        <kbd>A / ←</kbd>
+      </button>
+      <button class="control-button thrust" data-control="thrust" type="button" aria-label="Fire descent engine">
+        <span class="engine-light"></span>
+        <span>DESCENT ENGINE</span>
+        <kbd>W / ↑ / SPACE</kbd>
+      </button>
+      <button class="control-button rotate" data-control="right" type="button" aria-label="Rotate right">
+        <span class="control-icon">↷</span>
+        <span>ROTATE RIGHT</span>
+        <kbd>D / →</kbd>
+      </button>
+      <button id="restart-button" class="control-button restart" type="button" aria-label="Restart mission">
+        <span class="control-icon">↺</span>
+        <span>RESTART</span>
+        <kbd>R</kbd>
+      </button>
+      <button id="sound-button" class="control-button sound active" type="button" aria-label="Mute background audio" aria-pressed="true">
+        <span id="sound-icon" class="control-icon">♫</span>
+        <span id="sound-label">SOUND ON</span>
+        <kbd>M</kbd>
+      </button>
+    </section>
+
+    <section class="hud">
+      <article class="hud-card">
+        <h2>FLIGHT COMPUTER</h2>
+        <div class="readout-grid">
+          <div><span>ALTITUDE</span><b id="hud-alt">640.0 m</b></div>
+          <div><span>VERTICAL</span><b id="hud-vspd">-6.0 m/s</b></div>
+          <div><span>HORIZONTAL</span><b id="hud-hspd">+14.0 m/s</b></div>
+          <div><span>PITCH</span><b id="hud-pitch">0.0°</b></div>
+          <div><span>FUEL</span><b id="hud-fuel">100.0%</b></div>
+          <div><span>PROG / VERB / NOUN</span><b id="hud-pvn">P64 / V16 / N68</b></div>
+        </div>
+        <div class="fuel-meter" aria-label="Descent stage fuel">
+          <div id="fuel-fill" class="fuel-fill"></div>
+        </div>
+      </article>
+
+      <article class="hud-card">
+        <h2>AGC EXECUTIVE</h2>
+        <div class="meter"><div id="core-fill" class="meter-fill"></div></div>
+        <div class="meter-label"><span id="core-count">3</span> / <span id="core-max">7</span> CORE SETS</div>
+        <div class="hud-row"><span>RADAR AUTO/SLEW</span><b id="hud-radar" class="warning">ON</b></div>
+        <div class="hud-row"><span>PROGRAM ALARM</span><b id="hud-alarm">—</b></div>
+        <div class="hud-row"><span>RESTART</span><b id="hud-restart">ARMED</b></div>
+        <p class="hint">The historical 1202/1201 executive-overflow alarms occur on the real GET timeline. The AGC restarts while your landing continues.</p>
+      </article>
+
+      <article class="hud-card">
+        <h2>MICROSOFT FABRIC RTI</h2>
+        <div class="hud-row">
+          <span>PLAYER ID</span>
+          <button id="player-id-button" class="id-button" type="button" title="Copy full Player ID">
+            <b id="hud-player-id">LOADING</b>
+          </button>
+        </div>
+        <div class="hud-row">
+          <span>GAME ID</span>
+          <button id="game-id-button" class="id-button" type="button" title="Copy full Game ID" disabled>
+            <b id="hud-game-id">NOT STARTED</b>
+          </button>
+        </div>
+        <div class="hud-row"><span>GAME SOCKET</span><b id="conn-status">CONNECTING</b></div>
+        <div class="hud-row"><span>EVENTSTREAM</span><b id="hud-fabric">CHECKING</b></div>
+        <div class="hud-row"><span>EVENTS SENT</span><b id="hud-events-sent">0</b></div>
+        <div class="hud-row"><span>SERVER RECEIVED</span><b id="hud-server-received">0</b></div>
+        <p class="hint">Click an ID to copy it for Kusto. Player ID persists in this browser; Game ID changes for every landing attempt.</p>
+      </article>
+    </section>
+
+    <section class="telemetry-panel">
+      <div class="telemetry-heading">
+        <h2>MISSION / PLAYER EVENT STREAM</h2>
+        <span>NDJSON + FABRIC EVENTSTREAM + EVENTHOUSE</span>
+      </div>
+      <div id="event-log" class="event-log" aria-live="polite"></div>
+    </section>
+
+    <footer>
+      <a href="/">DSKY VIEW</a>
+      <span>·</span>
+      <a href="/README.md">PROJECT README</a>
+      <span>·</span>
+      <span>Lunar gravity and arcade-tuned LM controls; mission alarms use Apollo 11 GET timestamps.</span>
+    </footer>
+  </main>
+  <audio id="background-audio" src="/audio/WhatAldrinSaw.mp3" loop preload="auto"></audio>
+  <script src="/lander/app.js"></script>
+</body>
+</html>

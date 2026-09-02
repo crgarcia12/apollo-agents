@@ -99,10 +99,16 @@ apollo11-agc-demo/
 │   └── telemetry_stream.ndjson    # Generated at runtime — NDJSON telemetry (Fabric ingestion feed)
 ├── simulator/
 │   ├── agc_simulator.py           # Replays the timeline, models executive/core-set overflow, serves WebSocket
+│   ├── web_app.py                 # Combined DSKY/lander host and Fabric publishers
+│   ├── flight_profile.py          # Interpolated automatic descent profile
 │   ├── fabric_forwarder.py        # Forwards NDJSON telemetry into a real Fabric Eventstream (Event Hub protocol)
 │   └── requirements.txt
 ├── dsky-ui/
 │   ├── index.html / style.css / app.js   # Live DSKY replica UI (WebSocket client)
+├── lander-2d/
+│   ├── index.html / style.css / app.js   # Playable 2D lunar-landing game
+├── audio/
+│   └── WhatAldrinSaw.mp3                 # Looping lander background audio
 ├── fabric/
 │   ├── eventstream_schema.json           # Fabric Eventstream source/table schema
 │   ├── kql/create_table_and_mapping.kql  # Eventhouse table + ingestion mapping
@@ -120,7 +126,7 @@ apollo11-agc-demo/
 ## 5. Running the demo locally
 
 ```powershell
-cd apollo11-agc-demo\simulator
+cd apollo-agents\simulator
 pip install -r requirements.txt
 python agc_simulator.py --fast 20     # 20x real-time speed (~40s to replay the whole descent)
 ```
@@ -143,6 +149,45 @@ It connects to `ws://localhost:8765` and shows, live:
 - A live event log — the same events being appended as NDJSON to
   `data/telemetry_stream.ndjson`.
 
+### 5.1 Combined server (DSKY + 2D landing view + Fabric streaming, one process)
+
+Instead of running `agc_simulator.py` and opening a static HTML file
+separately, `simulator/web_app.py` hosts everything on one port:
+
+```powershell
+cd apollo-agents\simulator
+pip install -r requirements.txt
+python web_app.py           # http://localhost:8000 (SERVER_PORT/PORT to change)
+```
+
+- `http://localhost:8000/` — the DSKY view described above.
+- `http://localhost:8000/lander` — a **playable 2D powered-descent
+  simulator** with arcade-tuned Lunar Module physics. Use `A`/`D` or the
+  arrow keys to rotate, and hold `W`, Up, or Space to fire the descent
+  engine. Touch controls are included for phones and tablets. A safe
+  landing must be inside the illuminated pad at <= 5 m/s vertical speed,
+  <= 3 m/s horizontal speed, and <= 12 degrees pitch. Landing contact
+  stops the vehicle on the terrain, including after a hard landing.
+- `audio/WhatAldrinSaw.mp3` begins after the player starts the mission,
+  loops continuously, and can be muted with the sound button or `M`.
+- The top timeline advances through the real Apollo 11 GET sequence. The
+  1202/1201 executive-overflow alarms and AGC restarts still occur while
+  the player remains in control.
+- The browser sends physics, control state, fuel, alarms, and landing
+  outcomes to `/lander/ws` at 5 Hz. The server appends those records to
+  `data/lander_game_stream.ndjson` and publishes them to the configured
+  Fabric Eventstream and Eventhouse alongside the automatic AGC replay.
+- Each browser profile receives a persistent anonymous `player_id`.
+  Every landing creates a new `game_id`; `attempt_id` and `session_id`
+  retain that same game value for compatibility. Both IDs appear in the
+  Fabric HUD card and can be clicked to copy the full UUID for Kusto.
+  Clearing browser storage or using an incognito window creates a new
+  Player ID.
+- `/healthz` reports each live Fabric publisher, queue depth, connected
+  game clients, received game-message count, and explicit drop counters.
+  Each Fabric destination has an isolated bounded queue, so an outage in
+  one destination cannot freeze gameplay or the other destination.
+
 ## 6. Wiring into Microsoft Fabric (Operational Agent debugging)
 
 **Nothing is connected to a live Fabric workspace by default.** Everything
@@ -155,20 +200,26 @@ real:
    and run `fabric/kql/create_table_and_mapping.kql` to create the
    `AgcTelemetry` table + JSON ingestion mapping.
 2. Create an **Eventstream** with a "Custom App" (Event Hub-compatible)
-   source, wired as a destination into that table.
-3. Copy the connection string + event hub name it gives you, then run:
+   source. Copy its connection string and Event Hub name.
+3. Configure `web_app.py` to fan every automatic and playable record to
+   both the Eventstream and the Eventhouse:
 
    ```powershell
    cd simulator
    $env:FABRIC_EVENTHUB_CONNECTION_STR = "Endpoint=sb://...;SharedAccessKeyName=...;SharedAccessKey=...;EntityPath=es_xxxx"
    $env:FABRIC_EVENTHUB_NAME = "es_xxxx"
-   python fabric_forwarder.py --follow   # run alongside agc_simulator.py to stream live
-   # or, to backfill whatever is already in data/telemetry_stream.ndjson:
-   python fabric_forwarder.py --replay
+   $env:FABRIC_KUSTO_CLUSTER_URI = "https://<cluster>.kusto.fabric.microsoft.com"
+   $env:FABRIC_KUSTO_DATABASE = "Apollo11Eventhouse"
+   $env:FABRIC_KUSTO_TABLE = "AgcTelemetry"
+   $env:FABRIC_KUSTO_MAPPING = "AgcTelemetryMapping"
+   python web_app.py
    ```
 
-   Use `--dry-run` (no credentials needed) to see exactly what would be
-   sent without a real Fabric connection.
+   Direct Eventhouse publishing is intended for an Azure host with managed
+   identity. Enable that identity and grant it only the KQL database
+   `ingestors` role. For a local run, omit the Kusto variables unless a
+   managed-identity endpoint is available; Eventstream publishing can
+   still run independently.
 4. Once data is flowing, run the queries in
    `fabric/kql/anomaly_detection_queries.kql` directly in the Eventhouse,
    and configure the Operations Agent per
@@ -179,9 +230,27 @@ Where you'd then see it in the Fabric portal:
 - **Real-Time Intelligence → Eventhouse → `AgcTelemetry`** — the raw
   ingested rows (query with the KQL above).
 - **Eventstream** designer view — live throughput graph as
-  `fabric_forwarder.py` sends batches.
+  `web_app.py` sends batches.
 - **Operations Agent** page for that Eventhouse — trigger history and
   Teams notifications once configured.
+
+Filter every attempt from one player:
+
+```kusto
+let selectedPlayer = "paste-player-id-here";
+AgcTelemetry
+| where player_id == selectedPlayer
+| order by event_time desc
+```
+
+Filter one exact landing:
+
+```kusto
+let selectedGame = "paste-game-id-here";
+AgcTelemetry
+| where game_id == selectedGame
+| order by event_time asc
+```
 
 `fabric/incident_investigation_transcript.md` remains a hand-written
 example of the natural-language root-cause report Copilot's Investigator

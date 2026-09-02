@@ -3,12 +3,22 @@
 // Run in a Fabric Eventhouse (KQL Database) query window.
 // ============================================================================
 
-.create table AgcTelemetry (
+.create-merge table AgcTelemetry (
     event_time: datetime,
+    client_event_time: datetime,
     mission_get: string,
     sim_get_seconds: real,
     event_type: string,
     record_kind: string,
+    source: string,
+    schema_version: string,
+    player_id: string,
+    game_id: string,
+    session_id: string,
+    attempt_id: string,
+    connection_id: string,
+    message_id: string,
+    sequence: long,
     program: string,
     verb: int,
     noun: int,
@@ -24,16 +34,42 @@
     active_alarm_code: string,
     core_sets_used: int,
     max_core_sets: int,
-    radar_auto_slew: bool
+    radar_auto_slew: bool,
+    game_elapsed_s: real,
+    game_state: string,
+    lander_x_m: real,
+    lander_altitude_m: real,
+    lander_vertical_speed_mps: real,
+    lander_horizontal_speed_mps: real,
+    lander_rotation_deg: real,
+    lander_throttle_pct: real,
+    lander_fuel_pct: real,
+    landing_target_distance_m: real,
+    control_left: bool,
+    control_right: bool,
+    control_thrust: bool,
+    touchdown_vertical_speed_mps: real,
+    touchdown_horizontal_speed_mps: real,
+    touchdown_angle_deg: real
 )
 
-.create table AgcTelemetry ingestion json mapping 'AgcTelemetryMapping'
+.create-or-alter table AgcTelemetry ingestion json mapping 'AgcTelemetryMapping'
 '['
 '    {"column":"event_time","path":"$.event_time"},'
+'    {"column":"client_event_time","path":"$.client_event_time"},'
 '    {"column":"mission_get","path":"$.mission_get"},'
 '    {"column":"sim_get_seconds","path":"$.sim_get_seconds"},'
 '    {"column":"event_type","path":"$.event_type"},'
 '    {"column":"record_kind","path":"$.kind"},'
+'    {"column":"source","path":"$.source"},'
+'    {"column":"schema_version","path":"$.schema_version"},'
+'    {"column":"player_id","path":"$.player_id"},'
+'    {"column":"game_id","path":"$.game_id"},'
+'    {"column":"session_id","path":"$.session_id"},'
+'    {"column":"attempt_id","path":"$.attempt_id"},'
+'    {"column":"connection_id","path":"$.connection_id"},'
+'    {"column":"message_id","path":"$.message_id"},'
+'    {"column":"sequence","path":"$.sequence"},'
 '    {"column":"program","path":"$.program"},'
 '    {"column":"verb","path":"$.verb"},'
 '    {"column":"noun","path":"$.noun"},'
@@ -49,5 +85,21 @@
 '    {"column":"active_alarm_code","path":"$.active_alarm_code"},'
 '    {"column":"core_sets_used","path":"$.core_sets_used"},'
 '    {"column":"max_core_sets","path":"$.max_core_sets"},'
-'    {"column":"radar_auto_slew","path":"$.radar_auto_slew"}'
+'    {"column":"radar_auto_slew","path":"$.radar_auto_slew"},'
+'    {"column":"game_elapsed_s","path":"$.game_elapsed_s"},'
+'    {"column":"game_state","path":"$.game_state"},'
+'    {"column":"lander_x_m","path":"$.lander_x_m"},'
+'    {"column":"lander_altitude_m","path":"$.lander_altitude_m"},'
+'    {"column":"lander_vertical_speed_mps","path":"$.lander_vertical_speed_mps"},'
+'    {"column":"lander_horizontal_speed_mps","path":"$.lander_horizontal_speed_mps"},'
+'    {"column":"lander_rotation_deg","path":"$.lander_rotation_deg"},'
+'    {"column":"lander_throttle_pct","path":"$.lander_throttle_pct"},'
+'    {"column":"lander_fuel_pct","path":"$.lander_fuel_pct"},'
+'    {"column":"landing_target_distance_m","path":"$.landing_target_distance_m"},'
+'    {"column":"control_left","path":"$.control_left"},'
+'    {"column":"control_right","path":"$.control_right"},'
+'    {"column":"control_thrust","path":"$.control_thrust"},'
+'    {"column":"touchdown_vertical_speed_mps","path":"$.touchdown_vertical_speed_mps"},'
+'    {"column":"touchdown_horizontal_speed_mps","path":"$.touchdown_horizontal_speed_mps"},'
+'    {"column":"touchdown_angle_deg","path":"$.touchdown_angle_deg"}'
 ']'
