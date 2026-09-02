@@ -19,7 +19,7 @@ AgcTelemetry
 | render timechart
 
 // 3) Threshold-based early warning: flag when the executive is within one
-//    job of overflowing (>= 7 of 8 core sets) WHILE the radar is in
+//    job of overflowing (>= 6 of 7 core sets) WHILE the radar is in
 //    AUTO/SLEW -- this combination is the actual root cause pattern.
 AgcTelemetry
 | where event_type == "telemetry_sample"

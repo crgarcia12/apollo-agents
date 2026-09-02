@@ -30,6 +30,7 @@ Run:
 import argparse
 import asyncio
 import json
+import os
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -39,9 +40,12 @@ import websockets
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 TIMELINE_PATH = DATA_DIR / "mission_timeline.json"
-STREAM_OUT_PATH = DATA_DIR / "telemetry_stream.ndjson"
+STREAM_OUT_PATH = Path(os.environ.get(
+    "TELEMETRY_STREAM_PATH",
+    DATA_DIR / "telemetry_stream.ndjson",
+))
 
-MAX_CORE_SETS = 8          # Executive job table size, modeled after EXECUTIVE.agc
+MAX_CORE_SETS = 7          # Luminary Executive pool: seven core sets
 RADAR_AUTO_JOB_RATE = 12.5 # extra spurious job requests/sec injected by CDU when radar in AUTO/SLEW
 NORMAL_JOB_RATE = 3.0      # baseline landing-program job churn per second
 TICK_HZ = 5                # simulated telemetry samples per second
@@ -50,6 +54,13 @@ TICK_HZ = 5                # simulated telemetry samples per second
 def get_to_seconds(get_str: str) -> float:
     h, m, s = get_str.split(":")
     return int(h) * 3600 + int(m) * 60 + int(s)
+
+
+def seconds_to_get(seconds: float) -> str:
+    whole_seconds = int(seconds)
+    hours, remainder = divmod(whole_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:03d}:{minutes:02d}:{seconds:02d}"
 
 
 @dataclass
@@ -82,13 +93,18 @@ def build_events():
 
 
 class Simulator:
-    def __init__(self, speed: float):
+    def __init__(self, speed: float, telemetry_sink=None):
         self.speed = speed
+        self.telemetry_sink = telemetry_sink
+        self.clients = set()
+        self.latest_payload = None
+        self.reset()
+
+    def reset(self):
         self.events = build_events()
         self.t0 = self.events[0]["t"]
         self.t_end = self.events[-1]["t"]
         self.state = AgcState()
-        self.clients = set()
         self.radar_auto = False
         self.core_sets = 0.0
         self._alarm_cooldown = 0
@@ -96,6 +112,8 @@ class Simulator:
     async def register(self, ws):
         self.clients.add(ws)
         try:
+            if self.latest_payload is not None:
+                await ws.send(json.dumps(self.latest_payload))
             async for _ in ws:
                 pass
         finally:
@@ -176,9 +194,13 @@ class Simulator:
 
             self.tick_core_sets(dt_wall * self.speed)
 
+            event_time = datetime.now(timezone.utc).isoformat()
             telemetry = {
                 "kind": "telemetry",
+                "event_time": event_time,
+                "mission_get": seconds_to_get(t),
                 "sim_get_seconds": round(t, 1),
+                "event_type": "telemetry_sample",
                 "program": self.state.program,
                 "verb": self.state.verb,
                 "noun": self.state.noun,
@@ -190,16 +212,42 @@ class Simulator:
                 "key_rel": self.state.key_rel,
                 "stby": self.state.stby,
                 "active_alarm_code": self.state.active_alarm_code,
+                "code": self.state.active_alarm_code,
+                "note": "",
                 "core_sets_used": self.state.core_sets_used,
                 "max_core_sets": MAX_CORE_SETS,
                 "radar_auto_slew": self.radar_auto,
                 "events": stream_lines,
             }
-            await self.broadcast(telemetry)
 
             for line in stream_lines:
-                line["core_sets_used"] = self.state.core_sets_used
-                line["radar_auto_slew"] = self.radar_auto
+                line.update({
+                    "kind": "mission_event",
+                    "sim_get_seconds": round(t, 1),
+                    "program": self.state.program,
+                    "verb": self.state.verb,
+                    "noun": self.state.noun,
+                    "r1": self.state.r1,
+                    "r2": self.state.r2,
+                    "r3": self.state.r3,
+                    "prog_alarm": self.state.prog_alarm,
+                    "restart_lamp": self.state.restart_lamp,
+                    "key_rel": self.state.key_rel,
+                    "stby": self.state.stby,
+                    "active_alarm_code": self.state.active_alarm_code,
+                    "core_sets_used": self.state.core_sets_used,
+                    "max_core_sets": MAX_CORE_SETS,
+                    "radar_auto_slew": self.radar_auto,
+                })
+
+            self.latest_payload = telemetry
+            await self.broadcast(telemetry)
+            if self.telemetry_sink is not None:
+                for line in stream_lines:
+                    await self.telemetry_sink(line)
+                await self.telemetry_sink(telemetry)
+
+            for line in stream_lines:
                 stream_file.write(json.dumps(line) + "\n")
             stream_file.write(json.dumps({**telemetry, "kind": "telemetry_sample", "events": None}) + "\n")
             stream_file.flush()
@@ -210,10 +258,15 @@ class Simulator:
         print("[sim] Replay complete: touchdown reached.")
         stream_file.close()
 
+    async def run_forever(self):
+        while True:
+            await self.run()
+            await asyncio.sleep(8)
+            self.reset()
+
     async def serve(self):
         async with websockets.serve(self.register, "localhost", 8765):
-            await self.run()
-            await asyncio.Future()  # keep the socket open after replay ends
+            await self.run_forever()
 
 
 def main():

@@ -27,7 +27,7 @@ flowchart LR
         CH33["CH33 - radar and link status\nRR power/range/data-good,\nLR pos/vel/range data-good,\nuplink/downlink rate flags, PIPA fail"]
     end
 
-    AGC["APOLLO GUIDANCE COMPUTER\nExecutive (job scheduler, 8 core sets)\n+ Interpreter + Programs P63/P64/P66..."]
+    AGC["APOLLO GUIDANCE COMPUTER\nExecutive (job scheduler, 7 core sets)\n+ Interpreter + Programs P63/P64/P66..."]
 
     subgraph OUTPUTS["OUTPUT CHANNELS  (AGC to hardware/display)"]
         direction TB

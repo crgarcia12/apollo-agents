@@ -6,28 +6,48 @@
 .create table AgcTelemetry (
     event_time: datetime,
     mission_get: string,
+    sim_get_seconds: real,
     event_type: string,
+    record_kind: string,
     program: string,
+    verb: int,
+    noun: int,
+    r1: string,
+    r2: string,
+    r3: string,
     code: string,
     note: string,
+    prog_alarm: bool,
+    restart_lamp: bool,
+    key_rel: bool,
+    stby: bool,
+    active_alarm_code: string,
     core_sets_used: int,
     max_core_sets: int,
-    radar_auto_slew: bool,
-    verb: int,
-    noun: int
+    radar_auto_slew: bool
 )
 
 .create table AgcTelemetry ingestion json mapping 'AgcTelemetryMapping'
 '['
 '    {"column":"event_time","path":"$.event_time"},'
 '    {"column":"mission_get","path":"$.mission_get"},'
+'    {"column":"sim_get_seconds","path":"$.sim_get_seconds"},'
 '    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"record_kind","path":"$.kind"},'
 '    {"column":"program","path":"$.program"},'
+'    {"column":"verb","path":"$.verb"},'
+'    {"column":"noun","path":"$.noun"},'
+'    {"column":"r1","path":"$.r1"},'
+'    {"column":"r2","path":"$.r2"},'
+'    {"column":"r3","path":"$.r3"},'
 '    {"column":"code","path":"$.code"},'
 '    {"column":"note","path":"$.note"},'
+'    {"column":"prog_alarm","path":"$.prog_alarm"},'
+'    {"column":"restart_lamp","path":"$.restart_lamp"},'
+'    {"column":"key_rel","path":"$.key_rel"},'
+'    {"column":"stby","path":"$.stby"},'
+'    {"column":"active_alarm_code","path":"$.active_alarm_code"},'
 '    {"column":"core_sets_used","path":"$.core_sets_used"},'
 '    {"column":"max_core_sets","path":"$.max_core_sets"},'
-'    {"column":"radar_auto_slew","path":"$.radar_auto_slew"},'
-'    {"column":"verb","path":"$.verb"},'
-'    {"column":"noun","path":"$.noun"}'
+'    {"column":"radar_auto_slew","path":"$.radar_auto_slew"}'
 ']'

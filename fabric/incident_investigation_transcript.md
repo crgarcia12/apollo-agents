@@ -13,13 +13,13 @@ ingested data.
 
 **🔔 Operations Agent — AGC Executive Overflow Watch**
 Anomaly detected at `GET 102:38:20` (± telemetry sample resolution).
-`core_sets_used` reached 7/8 while `radar_auto_slew = true`. Alarm `1202`
+`core_sets_used` reached 7/7 while `radar_auto_slew = true`. Alarm `1202`
 recorded at `GET 102:38:23`, program `P63`.
 
 **Copilot Investigator insights:**
 
 > **Summary:** The executive job scheduler ran out of core sets
-> (7→8 of 8 in use) immediately before program alarm **1202** fired.
+> (6→7 of 7 in use) immediately before program alarm **1202** fired.
 > In the 30 seconds leading up to the alarm, `radar_auto_slew` was `true`
 > for 100% of samples — this is the dominant correlated signal.
 >

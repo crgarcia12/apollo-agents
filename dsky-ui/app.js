@@ -1,4 +1,9 @@
-const WS_URL = "ws://localhost:8765";
+const isSplitLocalServer =
+  ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+  window.location.port !== "8000";
+const WS_URL = isSplitLocalServer
+  ? "ws://localhost:8765"
+  : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
 const statusEl = document.getElementById("conn-status");
 const logEl = document.getElementById("log");
 

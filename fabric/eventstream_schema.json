@@ -1,9 +1,9 @@
 {
-  "description": "Schema for the custom-app Eventstream source that ingests AGC telemetry produced by simulator/agc_simulator.py (data/telemetry_stream.ndjson) into a Microsoft Fabric Eventstream, landing in an Eventhouse KQL database table 'AgcTelemetry'.",
+  "description": "Live schema used by the Azure-hosted simulator to publish AGC telemetry and mission events to the Apollo11Telemetry Eventstream and the Apollo11Ops.AgcTelemetry table.",
   "eventstream_source": {
     "type": "CustomEndpoint",
-    "name": "apollo11-agc-source",
-    "notes": "In Fabric, create an Eventstream, add a 'Custom App' source, and copy its connection string. Point a small forwarder at data/telemetry_stream.ndjson (e.g. `tail -f` piped to the Event Hub-compatible endpoint) or use the Fabric Python SDK / azure-eventhub package to publish each NDJSON line as an event."
+    "name": "ApolloTelemetrySource",
+    "notes": "The Azure Container App publishes directly with azure-eventhub. Its Event Hub-compatible connection string is stored only as a Container App secret."
   },
   "destination": {
     "type": "Eventhouse",
@@ -13,14 +13,24 @@
   "columns": [
     { "name": "event_time", "type": "datetime", "source_field": "event_time" },
     { "name": "mission_get", "type": "string", "source_field": "mission_get", "description": "Ground Elapsed Time HH:MM:SS" },
+    { "name": "sim_get_seconds", "type": "real", "source_field": "sim_get_seconds" },
     { "name": "event_type", "type": "string", "source_field": "event_type", "description": "program | alarm | restart | note | event | telemetry_sample" },
+    { "name": "record_kind", "type": "string", "source_field": "kind", "description": "telemetry | mission_event" },
     { "name": "program", "type": "string", "source_field": "program", "description": "Active AGC program, e.g. P63/P64/P66" },
+    { "name": "verb", "type": "int", "source_field": "verb" },
+    { "name": "noun", "type": "int", "source_field": "noun" },
+    { "name": "r1", "type": "string", "source_field": "r1" },
+    { "name": "r2", "type": "string", "source_field": "r2" },
+    { "name": "r3", "type": "string", "source_field": "r3" },
     { "name": "code", "type": "string", "source_field": "code", "description": "Alarm code such as 1202 or 1201, null otherwise" },
     { "name": "note", "type": "string", "source_field": "note" },
+    { "name": "prog_alarm", "type": "bool", "source_field": "prog_alarm" },
+    { "name": "restart_lamp", "type": "bool", "source_field": "restart_lamp" },
+    { "name": "key_rel", "type": "bool", "source_field": "key_rel" },
+    { "name": "stby", "type": "bool", "source_field": "stby" },
+    { "name": "active_alarm_code", "type": "string", "source_field": "active_alarm_code" },
     { "name": "core_sets_used", "type": "int", "source_field": "core_sets_used", "description": "Executive job-table (core set) utilization, 0-8" },
     { "name": "max_core_sets", "type": "int", "source_field": "max_core_sets" },
-    { "name": "radar_auto_slew", "type": "bool", "source_field": "radar_auto_slew", "description": "True when the rendezvous radar is in AUTO/SLEW, injecting spurious jobs" },
-    { "name": "verb", "type": "int", "source_field": "verb" },
-    { "name": "noun", "type": "int", "source_field": "noun" }
+    { "name": "radar_auto_slew", "type": "bool", "source_field": "radar_auto_slew", "description": "True when the rendezvous radar is in AUTO/SLEW, injecting spurious jobs" }
   ]
 }

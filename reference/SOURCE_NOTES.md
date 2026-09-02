@@ -34,11 +34,12 @@ Other modules in the same repository that are directly relevant to the
 incident (not vendored here, but worth reading in the upstream repo):
 
 - `Luminary099/EXECUTIVE.agc` — the job scheduler ("the executive") that
-  tracks up to 8 concurrent jobs using a fixed pool of "core sets"
+  tracks up to 7 concurrent jobs using a fixed pool of "core sets"
   (memory buffers for job state). When the rendezvous radar, left in
   AUTO/SLEW, flooded the AGC with spurious `RUPT` counter-driven jobs, the
   executive ran out of core sets — this is the literal "1202 EXECUTIVE
-  OVERFLOW — NO VAC AREAS" condition.
+  OVERFLOW — NO CORE SETS" condition. Alarm 1201 is the related
+  "NO VAC AREAS" condition.
 - `Luminary099/WAITLIST.agc` — the timer-driven task list; interacts with
   the executive for scheduling periodic jobs (e.g., radar processing).
 - `Luminary099/RESTARTS.agc` and `Luminary099/T4RUPT.agc` — the restart /

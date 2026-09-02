@@ -35,8 +35,8 @@ and MIT/NASA documentation:
   `R1`/`R2`/`R3`.
 - Status/warning lamps: `UPLINK ACTY`, `TEMP`, `NO ATT`, `GIMBAL LOCK`,
   `TRACKER`, `PROG` (program alarm), `KEY REL`, `OPR ERR`, `RESTART`, `STBY`.
-- Alarm codes (e.g. **1202** = executive overflow / no vacant areas,
-  **1201** = no core sets) — surfaced via `VERB 05 NOUN 09`.
+- Alarm codes (e.g. **1201** = executive overflow / no vacant areas,
+  **1202** = no core sets) — surfaced via `VERB 05 NOUN 09`.
 - Engine/DAP (digital autopilot) commands sent back out to spacecraft
   hardware (thrusters, descent engine throttle).
 
@@ -51,8 +51,8 @@ Coupling Data Unit kept streaming position updates to the AGC even though
 they weren't needed for landing, generating a flood of spurious
 interrupt-driven jobs. The AGC's **executive** (job scheduler) has a fixed
 pool of "core sets" (job-state buffers); it ran out, raising alarm
-**1202** (`EXECUTIVE OVERFLOW — NO VAC AREAS`) three times and **1201**
-(`NO CORE SETS`) once, at roughly `GET 102:38` and `102:42`. Because
+**1202** (`EXECUTIVE OVERFLOW — NO CORE SETS`) three times and **1201**
+(`NO VAC AREAS`) once, at roughly `GET 102:38` and `102:42`. Because
 Margaret Hamilton's team designed the executive to **shed low-priority
 work and restart** instead of crashing, the primary landing-guidance jobs
 kept running throughout, and — after Steve Bales/Jack Garman confirmed the
